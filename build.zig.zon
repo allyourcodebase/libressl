@@ -1,0 +1,18 @@
+.{
+    .name = "libressl",
+    .version = "3.9.2",
+    .minimum_zig_version = "0.12.0",
+    .dependencies = .{
+        .libressl = .{
+            .url = "https://github.com/libressl/portable/releases/download/v3.9.2/libressl-3.9.2.tar.gz",
+            .hash = "1220713b293eab87698edf5d6b9bbacf6c17684e65c42da2ad00da6e7e9cf1df5517",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+        "LICENSE-LIBRESSL",
+        "README.md",
+    },
+}
