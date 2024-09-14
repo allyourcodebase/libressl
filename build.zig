@@ -4,8 +4,9 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const upstream = b.dependency("libressl", .{});
+    var build_asm = b.option(bool, "enable-asm", "Enable compiling assembly routines, if available (default: true)") orelse true;
 
+    const upstream = b.dependency("libressl", .{});
     const libressl_libs: LibreSslLibs = .{
         .libcrypto = b.addStaticLibrary(.{
             .name = "cypto",
@@ -42,78 +43,31 @@ pub fn build(b: *std.Build) !void {
     const crypto_srcroot = upstream.path("crypto");
     libressl_libs.libcrypto.addCSourceFiles(.{
         .root = crypto_srcroot,
-        .files = &libcrypto_sources,
-        .flags = cflags,
-    });
-    libressl_libs.libcrypto.addCSourceFiles(.{
-        .root = crypto_srcroot,
-        .files = &libcrypto_nonasm,
-        .flags = cflags,
-    });
-    libressl_libs.libcrypto.addCSourceFiles(.{
-        .root = crypto_srcroot,
-        .files = &libcrypto_nonasm_or_armv4,
+        .files = libcrypto_sources,
         .flags = cflags,
     });
 
     const ssl_srcroot = upstream.path("ssl");
     libressl_libs.libssl.addCSourceFiles(.{
         .root = ssl_srcroot,
-        .files = &libssl_sources,
+        .files = libssl_sources,
         .flags = cflags,
     });
 
     const tls_srcroot = upstream.path("tls");
     libressl_libs.libtls.addCSourceFiles(.{
         .root = tls_srcroot,
-        .files = &libtls_sources,
+        .files = libtls_sources,
         .flags = cflags,
     });
 
-    libressl_libs.defineCMacro("LIBRESSL_INTERNAL", null);
-    libressl_libs.defineCMacro("OPENSSL_NO_HW_PADLOCK", null);
-    libressl_libs.defineCMacro("__BEGIN_HIDDEN_DECLS", "");
-    libressl_libs.defineCMacro("__END_HIDDEN_DECLS", "");
-    libressl_libs.defineCMacro("LIBRESSL_CRYPTO_INTERNAL", null);
-    libressl_libs.defineCMacro("OPENSSL_NO_ASM", null);
-
-    switch (tinfo.os.tag) {
-        .macos => {
-            libressl_libs.libcrypto.addCSourceFiles(.{
-                .root = crypto_srcroot,
-                .files = &libcrypto_unix_sources,
-                .flags = cflags,
-            });
-            libressl_libs.libcrypto.addCSourceFiles(.{
-                .root = crypto_srcroot,
-                .files = &libcrypto_macos_compat,
-                .flags = cflags,
-            });
-
-            libressl_libs.defineCMacro("HAVE_CLOCK_GETTIME", null);
-            libressl_libs.defineCMacro("HAVE_ASPRINTF", null);
-            libressl_libs.defineCMacro("HAVE_STRCASECMP", null);
-            libressl_libs.defineCMacro("HAVE_STRLCAT", null);
-            libressl_libs.defineCMacro("HAVE_STRLCPY", null);
-            libressl_libs.defineCMacro("HAVE_STRNDUP", null);
-            libressl_libs.defineCMacro("HAVE_STRNLEN", null);
-            libressl_libs.defineCMacro("HAVE_STRSEP", null);
-            libressl_libs.defineCMacro("HAVE_STRTONUM", null);
-            libressl_libs.defineCMacro("HAVE_TIMEGM", null);
-            libressl_libs.defineCMacro("HAVE_ARC4RANDOM_BUF", null);
-            libressl_libs.defineCMacro("HAVE_ARC4RANDOM_UNIFORM", null);
-            libressl_libs.defineCMacro("HAVE_GETENTROPY", null);
-            libressl_libs.defineCMacro("HAVE_GETPAGESIZE", null);
-            libressl_libs.defineCMacro("HAVE_GETPROGNAME", null);
-            libressl_libs.defineCMacro("HAVE_MEMMEM", null);
-            libressl_libs.defineCMacro("HAVE_MACHINE_ENDIAN_H", null);
-            libressl_libs.defineCMacro("HAVE_ERR_H", null);
-            libressl_libs.defineCMacro("HAVE_NETINET_IP_H", null);
-
+    // this logic is as similar as reasonable to the CMake logic:
+    if (build_asm) {
+        if (tinfo.ofmt == .elf) {
             if (tinfo.cpu.arch == .x86_64) {
                 libressl_libs.libcrypto.addCSourceFiles(.{
                     .root = crypto_srcroot,
-                    .files = &libcrypto_macos_amd64_asm,
+                    .files = libcrypto_elf_x86_64_asm,
                     .flags = cflags,
                 });
 
@@ -131,17 +85,101 @@ pub fn build(b: *std.Build) !void {
                 libressl_libs.libcrypto.defineCMacro("SHA512_ASM", null);
                 libressl_libs.libcrypto.defineCMacro("WHIRLPOOL_ASM", null);
                 libressl_libs.libcrypto.defineCMacro("OPENSSL_CPUID_OBJ", null);
+            } else if (tinfo.cpu.arch == .arm) {
+                libressl_libs.libcrypto.addCSourceFiles(.{
+                    .root = crypto_srcroot,
+                    .files = libcrypto_elf_armv4_asm,
+                    .flags = cflags,
+                });
+                libressl_libs.libcrypto.addCSourceFiles(.{
+                    .root = crypto_srcroot,
+                    .files = libcrypto_nonasm_or_armv4,
+                    .flags = cflags,
+                });
+
+                libressl_libs.libcrypto.defineCMacro("AES_ASM", null);
+                libressl_libs.libcrypto.defineCMacro("OPENSSL_BN_ASM_MONT", null);
+                libressl_libs.libcrypto.defineCMacro("GHASH_ASM", null);
+                libressl_libs.libcrypto.defineCMacro("SHA1_ASM", null);
+                libressl_libs.libcrypto.defineCMacro("SHA256_ASM", null);
+                libressl_libs.libcrypto.defineCMacro("SHA512_ASM", null);
+                libressl_libs.libcrypto.defineCMacro("OPENSSL_CPUID_OBJ", null);
+            } else {
+                build_asm = false;
             }
-        },
+        } else if (tinfo.isDarwin() and tinfo.cpu.arch == .x86_64) {
+            libressl_libs.libcrypto.addCSourceFiles(.{
+                .root = crypto_srcroot,
+                .files = libcrypto_macos_x86_64_asm,
+                .flags = cflags,
+            });
+
+            libressl_libs.libcrypto.defineCMacro("AES_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("BSAES_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("VPAES_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("OPENSSL_IA32_SSE2", null);
+            libressl_libs.libcrypto.defineCMacro("OPENSSL_BN_ASM_MONT", null);
+            libressl_libs.libcrypto.defineCMacro("OPENSSL_BN_ASM_MONT5", null);
+            libressl_libs.libcrypto.defineCMacro("MD5_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("GHASH_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("RSA_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("SHA1_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("SHA256_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("SHA512_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("WHIRLPOOL_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("OPENSSL_CPUID_OBJ", null);
+        } else if (tinfo.os.tag == .windows and tinfo.abi == .gnu) {
+            libressl_libs.libcrypto.addCSourceFiles(.{
+                .root = crypto_srcroot,
+                .files = libcrypto_mingw64_x86_64_asm,
+                .flags = cflags,
+            });
+            libressl_libs.libcrypto.defineCMacro("AES_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("BSAES_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("VPAES_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("OPENSSL_IA32_SSE2", null);
+            libressl_libs.libcrypto.defineCMacro("MD5_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("GHASH_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("RSA_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("SHA1_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("SHA256_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("SHA512_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("WHIRLPOOL_ASM", null);
+            libressl_libs.libcrypto.defineCMacro("OPENSSL_CPUID_OBJ", null);
+        } else {
+            build_asm = false;
+        }
+    }
+    if (!build_asm) {
+        libressl_libs.libcrypto.addCSourceFiles(.{
+            .root = crypto_srcroot,
+            .files = libcrypto_nonasm_or_armv4,
+            .flags = cflags,
+        });
+        libressl_libs.libcrypto.addCSourceFiles(.{
+            .root = crypto_srcroot,
+            .files = libcrypto_nonasm,
+            .flags = cflags,
+        });
+    }
+
+    libressl_libs.defineCMacro("LIBRESSL_INTERNAL", null);
+    libressl_libs.defineCMacro("OPENSSL_NO_HW_PADLOCK", null);
+    libressl_libs.defineCMacro("__BEGIN_HIDDEN_DECLS", "");
+    libressl_libs.defineCMacro("__END_HIDDEN_DECLS", "");
+    libressl_libs.defineCMacro("LIBRESSL_CRYPTO_INTERNAL", null);
+    libressl_libs.defineCMacro("OPENSSL_NO_ASM", null);
+
+    switch (tinfo.os.tag) {
         .linux => {
             libressl_libs.libcrypto.addCSourceFiles(.{
                 .root = crypto_srcroot,
-                .files = &libcrypto_unix_sources,
+                .files = libcrypto_unix_sources,
                 .flags = cflags,
             });
             libressl_libs.libcrypto.addCSourceFiles(.{
                 .root = crypto_srcroot,
-                .files = &libcrypto_linux_compat,
+                .files = libcrypto_linux_compat,
                 .flags = cflags,
             });
 
@@ -173,13 +211,13 @@ pub fn build(b: *std.Build) !void {
             if (tinfo.abi.isGnu()) {
                 libressl_libs.libcrypto.addCSourceFiles(.{
                     .root = crypto_srcroot,
-                    .files = &libcrypto_linux_glibc_compat,
+                    .files = libcrypto_linux_glibc_compat,
                     .flags = cflags,
                 });
             } else if (tinfo.abi.isMusl()) {
                 libressl_libs.libcrypto.addCSourceFiles(.{
                     .root = crypto_srcroot,
-                    .files = &libcrypto_linux_musl_compat,
+                    .files = libcrypto_linux_musl_compat,
                     .flags = cflags,
                 });
 
@@ -193,17 +231,17 @@ pub fn build(b: *std.Build) !void {
         .windows => {
             libressl_libs.libcrypto.addCSourceFiles(.{
                 .root = crypto_srcroot,
-                .files = &libcrypto_windows_sources,
+                .files = libcrypto_windows_sources,
                 .flags = cflags,
             });
             libressl_libs.libcrypto.addCSourceFiles(.{
                 .root = crypto_srcroot,
-                .files = &libcrypto_windows_compat,
+                .files = libcrypto_windows_compat,
                 .flags = cflags,
             });
             libressl_libs.libtls.addCSourceFiles(.{
                 .root = tls_srcroot,
-                .files = &libtls_windows_sources,
+                .files = libtls_windows_sources,
                 .flags = cflags,
             });
 
@@ -239,7 +277,42 @@ pub fn build(b: *std.Build) !void {
             libressl_libs.linkSystemLibrary("bcrypt");
         },
 
-        else => @panic("unsupported target OS"),
+        else => if (tinfo.isDarwin()) {
+            libressl_libs.libcrypto.addCSourceFiles(.{
+                .root = crypto_srcroot,
+                .files = libcrypto_unix_sources,
+                .flags = cflags,
+            });
+            libressl_libs.libcrypto.addCSourceFiles(.{
+                .root = crypto_srcroot,
+                .files = libcrypto_macos_compat,
+                .flags = cflags,
+            });
+
+            libressl_libs.defineCMacro("HAVE_CLOCK_GETTIME", null);
+            libressl_libs.defineCMacro("HAVE_ASPRINTF", null);
+            libressl_libs.defineCMacro("HAVE_STRCASECMP", null);
+            libressl_libs.defineCMacro("HAVE_STRLCAT", null);
+            libressl_libs.defineCMacro("HAVE_STRLCPY", null);
+            libressl_libs.defineCMacro("HAVE_STRNDUP", null);
+            libressl_libs.defineCMacro("HAVE_STRNLEN", null);
+            libressl_libs.defineCMacro("HAVE_STRSEP", null);
+            libressl_libs.defineCMacro("HAVE_STRTONUM", null);
+            libressl_libs.defineCMacro("HAVE_TIMEGM", null);
+            libressl_libs.defineCMacro("HAVE_ARC4RANDOM_BUF", null);
+            libressl_libs.defineCMacro("HAVE_ARC4RANDOM_UNIFORM", null);
+            libressl_libs.defineCMacro("HAVE_GETENTROPY", null);
+            libressl_libs.defineCMacro("HAVE_GETPAGESIZE", null);
+            libressl_libs.defineCMacro("HAVE_GETPROGNAME", null);
+            libressl_libs.defineCMacro("HAVE_MEMMEM", null);
+            libressl_libs.defineCMacro("HAVE_MACHINE_ENDIAN_H", null);
+            libressl_libs.defineCMacro("HAVE_ERR_H", null);
+            libressl_libs.defineCMacro("HAVE_NETINET_IP_H", null);
+
+            if (tinfo.cpu.arch == .x86_64 and build_asm) {} else {}
+        } else {
+            @panic("unsupported target OS");
+        },
     }
 
     const conf_header = upstream.path(switch (tinfo.cpu.arch) {
@@ -396,11 +469,11 @@ const libssl_src_prefix = base_src_prefix ++ "ssl/";
 const libtls_src_prefix = base_src_prefix ++ "tls/";
 
 // only used on nonasm builds
-const libcrypto_nonasm = [_][]const u8{
+const libcrypto_nonasm: []const []const u8 = &.{
     "aes/aes_core.c",
 };
 
-const libcrypto_include_paths = [_][]const u8{
+const libcrypto_include_paths: []const []const u8 = &.{
     libcrypto_src_prefix,
     libcrypto_src_prefix ++ "asn1",
     libcrypto_src_prefix ++ "bio",
@@ -431,7 +504,54 @@ const libcrypto_include_paths = [_][]const u8{
     source_header_prefix,
 };
 
-const libcrypto_macos_amd64_asm = [_][]const u8{
+const libcrypto_elf_armv4_asm: []const []const u8 = &.{
+    "aes/aes-elf-armv4.S",
+    "bn/mont-elf-armv4.S",
+    "sha/sha1-elf-armv4.S",
+    "sha/sha512-elf-armv4.S",
+    "sha/sha256-elf-armv4.S",
+    "modes/ghash-elf-armv4.S",
+    "armv4cpuid.S",
+    "armcap.c",
+};
+
+const libcrypto_common_x86_64_asm: []const []const u8 = &.{
+    "bn/arch/amd64/bignum_add.S",
+    "bn/arch/amd64/bignum_cmadd.S",
+    "bn/arch/amd64/bignum_cmul.S",
+    "bn/arch/amd64/bignum_mul.S",
+    "bn/arch/amd64/bignum_mul_4_8_alt.S",
+    "bn/arch/amd64/bignum_mul_8_16_alt.S",
+    "bn/arch/amd64/bignum_sqr.S",
+    "bn/arch/amd64/bignum_sqr_4_8_alt.S",
+    "bn/arch/amd64/bignum_sqr_8_16_alt.S",
+    "bn/arch/amd64/bignum_sub.S",
+    "bn/arch/amd64/word_clz.S",
+    "bn/arch/amd64/bn_arch.c",
+};
+
+const libcrypto_elf_x86_64_asm: []const []const u8 = &[_][]const u8{
+    "aes/aes-elf-x86_64.S",
+    "aes/bsaes-elf-x86_64.S",
+    "aes/vpaes-elf-x86_64.S",
+    "aes/aesni-elf-x86_64.S",
+    "aes/aesni-sha1-elf-x86_64.S",
+    "bn/modexp512-elf-x86_64.S",
+    "bn/mont-elf-x86_64.S",
+    "bn/mont5-elf-x86_64.S",
+    "camellia/cmll-elf-x86_64.S",
+    "md5/md5-elf-x86_64.S",
+    "modes/ghash-elf-x86_64.S",
+    "rc4/rc4-elf-x86_64.S",
+    "rc4/rc4-md5-elf-x86_64.S",
+    "sha/sha1-elf-x86_64.S",
+    "sha/sha256-elf-x86_64.S",
+    "sha/sha512-elf-x86_64.S",
+    "whrlpool/wp-elf-x86_64.S",
+    "cpuid-elf-x86_64.S",
+} ++ libcrypto_common_x86_64_asm;
+
+const libcrypto_macos_x86_64_asm: []const []const u8 = &[_][]const u8{
     "aes/aes-macosx-x86_64.S",
     "aes/bsaes-macosx-x86_64.S",
     "aes/vpaes-macosx-x86_64.S",
@@ -450,23 +570,31 @@ const libcrypto_macos_amd64_asm = [_][]const u8{
     "sha/sha512-macosx-x86_64.S",
     "whrlpool/wp-macosx-x86_64.S",
     "cpuid-macosx-x86_64.S",
+} ++ libcrypto_common_x86_64_asm;
 
-    "bn/arch/amd64/bignum_add.S",
-    "bn/arch/amd64/bignum_cmadd.S",
-    "bn/arch/amd64/bignum_cmul.S",
-    "bn/arch/amd64/bignum_mul.S",
-    "bn/arch/amd64/bignum_mul_4_8_alt.S",
-    "bn/arch/amd64/bignum_mul_8_16_alt.S",
-    "bn/arch/amd64/bignum_sqr.S",
-    "bn/arch/amd64/bignum_sqr_4_8_alt.S",
-    "bn/arch/amd64/bignum_sqr_8_16_alt.S",
-    "bn/arch/amd64/bignum_sub.S",
-    "bn/arch/amd64/word_clz.S",
-    "bn/arch/amd64/bn_arch.c",
+const libcrypto_mingw64_x86_64_asm: []const []const u8 = &.{
+    "aes/aes-mingw64-x86_64.S",
+    "aes/bsaes-mingw64-x86_64.S",
+    "aes/vpaes-mingw64-x86_64.S",
+    "aes/aesni-mingw64-x86_64.S",
+    "aes/aesni-sha1-mingw64-x86_64.S",
+    // "bn/modexp512-mingw64-x86_64.S",
+    // "bn/mont-mingw64-x86_64.S",
+    // "bn/mont5-mingw64-x86_64.S",
+    "camellia/cmll-mingw64-x86_64.S",
+    "md5/md5-mingw64-x86_64.S",
+    "modes/ghash-mingw64-x86_64.S",
+    "rc4/rc4-mingw64-x86_64.S",
+    "rc4/rc4-md5-mingw64-x86_64.S",
+    "sha/sha1-mingw64-x86_64.S",
+    "sha/sha256-mingw64-x86_64.S",
+    "sha/sha512-mingw64-x86_64.S",
+    "whrlpool/wp-mingw64-x86_64.S",
+    "cpuid-mingw64-x86_64.S",
 };
 
 // these are used on armv4 with asm, or a nonasm build
-const libcrypto_nonasm_or_armv4 = [_][]const u8{
+const libcrypto_nonasm_or_armv4: []const []const u8 = &.{
     "aes/aes_cbc.c",
     "camellia/camellia.c",
     "camellia/cmll_cbc.c",
@@ -475,14 +603,14 @@ const libcrypto_nonasm_or_armv4 = [_][]const u8{
     "whrlpool/wp_block.c",
 };
 
-const libcrypto_unix_sources = [_][]const u8{
+const libcrypto_unix_sources: []const []const u8 = &.{
     "crypto_lock.c",
     "bio/b_posix.c",
     "bio/bss_log.c",
     "ui/ui_openssl.c",
 };
 
-const libcrypto_windows_sources = [_][]const u8{
+const libcrypto_windows_sources: []const []const u8 = &.{
     "compat/crypto_lock_win.c",
     "bio/b_win.c",
     "ui/ui_openssl_win.c",
@@ -491,7 +619,7 @@ const libcrypto_windows_sources = [_][]const u8{
 
 // TODO: trial and error these?
 
-const libcrypto_macos_compat = [_][]const u8{
+const libcrypto_macos_compat: []const []const u8 = &.{
     "compat/freezero.c",
     "compat/reallocarray.c",
     "compat/recallocarray.c",
@@ -502,7 +630,7 @@ const libcrypto_macos_compat = [_][]const u8{
     "compat/timingsafe_memcmp.c",
 };
 
-const libcrypto_linux_compat = [_][]const u8{
+const libcrypto_linux_compat: []const []const u8 = &.{
     "compat/freezero.c",
     "compat/getprogname_linux.c",
 
@@ -520,16 +648,16 @@ const libcrypto_linux_compat = [_][]const u8{
     "compat/timingsafe_memcmp.c",
 };
 
-const libcrypto_linux_musl_compat = [_][]const u8{};
+const libcrypto_linux_musl_compat: []const []const u8 = &.{};
 
-const libcrypto_linux_glibc_compat = [_][]const u8{
+const libcrypto_linux_glibc_compat: []const []const u8 = &.{
     "compat/strlcat.c",
     "compat/strlcpy.c",
 
     "compat/getentropy_linux.c",
 };
 
-const libcrypto_windows_compat = [_][]const u8{
+const libcrypto_windows_compat: []const []const u8 = &.{
     "compat/freezero.c",
     "compat/getprogname_windows.c",
     "compat/getpagesize.c",
@@ -556,7 +684,7 @@ const libcrypto_windows_compat = [_][]const u8{
     "compat/timingsafe_memcmp.c",
 };
 
-const libcrypto_sources = [_][]const u8{
+const libcrypto_sources: []const []const u8 = &.{
     "cpt_err.c",
     "cryptlib.c",
     "crypto_init.c",
@@ -1015,7 +1143,7 @@ const libcrypto_sources = [_][]const u8{
     "x509/x_all.c",
 };
 
-const libssl_include_paths = [_][]const u8{
+const libssl_include_paths: []const []const u8 = &.{
     libssl_src_prefix,
     libssl_src_prefix ++ "hidden",
 
@@ -1028,7 +1156,7 @@ const libssl_include_paths = [_][]const u8{
     source_header_prefix,
 };
 
-const libssl_sources = [_][]const u8{
+const libssl_sources: []const []const u8 = &.{
     // these are compiled separately by Cmake, with a slightly different include path.
     // It appears they're only linked if shared libraries are being built? I don't get
     // it. I doubt always building them causes a problem, though.
@@ -1089,13 +1217,13 @@ const libssl_sources = [_][]const u8{
     "tls13_server.c",
 };
 
-const libtls_include_paths = [_][]const u8{
+const libtls_include_paths: []const []const u8 = &.{
     libssl_src_prefix,
     source_header_prefix ++ "compat",
     source_header_prefix,
 };
 
-const libtls_sources = [_][]const u8{
+const libtls_sources: []const []const u8 = &.{
     "tls.c",
     "tls_bio_cb.c",
     "tls_client.c",
@@ -1110,7 +1238,7 @@ const libtls_sources = [_][]const u8{
     "tls_verify.c",
 };
 
-const libtls_windows_sources = [_][]const u8{
+const libtls_windows_sources: []const []const u8 = &.{
     "compat/ftruncate.c",
     "compat/pread.c",
     "compat/pwrite.c",
