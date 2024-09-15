@@ -13,6 +13,6 @@
         "build.zig.zon",
         "LICENSE",
         "LICENSE-LIBRESSL",
-        "README.md",
+        "readme.md",
     },
 }
