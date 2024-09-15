@@ -32,6 +32,7 @@ pub fn build(b: *std.Build) !void {
     const tinfo = target.result;
 
     const common_cflags: []const []const u8 = &.{
+        "-fno-sanitize=undefined",
         "-Wno-pointer-sign",
     };
 
