@@ -319,7 +319,6 @@ pub fn build(b: *std.Build) !void {
     const conf_header = upstream.path(switch (tinfo.cpu.arch) {
         .aarch64,
         .aarch64_be,
-        .aarch64_32,
         => source_header_prefix ++ "arch/aarch64/opensslconf.h",
         .x86 => source_header_prefix ++ "arch/i386/opensslconf.h",
         .riscv64 => source_header_prefix ++ "arch/riscv64/opensslconf.h",
@@ -356,7 +355,6 @@ pub fn build(b: *std.Build) !void {
     switch (tinfo.cpu.arch) {
         .aarch64,
         .aarch64_be,
-        .aarch64_32,
         => libressl_libs.libcrypto.addIncludePath(
             upstream.path(libcrypto_src_prefix ++ "bn/arch/aarch64"),
         ),
