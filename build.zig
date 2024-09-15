@@ -162,6 +162,7 @@ pub fn build(b: *std.Build) !void {
             .files = libcrypto_nonasm,
             .flags = cflags,
         });
+        libressl_libs.defineCMacro("OPENSSL_NO_ASM", null);
     }
 
     libressl_libs.defineCMacro("LIBRESSL_INTERNAL", null);
@@ -169,7 +170,6 @@ pub fn build(b: *std.Build) !void {
     libressl_libs.defineCMacro("__BEGIN_HIDDEN_DECLS", "");
     libressl_libs.defineCMacro("__END_HIDDEN_DECLS", "");
     libressl_libs.defineCMacro("LIBRESSL_CRYPTO_INTERNAL", null);
-    libressl_libs.defineCMacro("OPENSSL_NO_ASM", null);
 
     switch (tinfo.os.tag) {
         .linux => {
