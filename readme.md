@@ -12,7 +12,7 @@ This project currently builds the three main LibreSSL libraries as static librar
 
 Operating systems and hardware architectures are supported on a best-effort basis. Building for Linux, macOS, and Windows (mingw64) is directly tested by CI.
 
-The command line programs `nc`, `ocspcheck`, and `openssl` are **not** currently built by this build system.
+The command-line programs `nc`, `ocspcheck`, and `openssl` are not built by default, and building them when targeting Windows is not supported. Building the command-line programs may be enabled by specifing the `-Dbuild-apps` option to `zig build`
 
 ## Usage
 
