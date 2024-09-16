@@ -22,6 +22,7 @@ jobs:
           - zig-version: "master"
             check-format: true
             os: ubuntu-latest
+            build-options: "-Dbuild-apps"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -37,4 +38,4 @@ jobs:
         run: zig fmt --ast-check --check .
 
       - name: Build
-        run: zig build --summary all
+        run: zig build ${{ matrix.build-options }} --summary all
