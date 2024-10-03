@@ -21,7 +21,7 @@ First, update your `build.zig.zon`:
 ```sh
 # Initialize a `zig build` project if you haven't already
 zig init
-# replace <refname> with the version you want to use, e.g. 3.9.2
+# replace <refname> with the version you want to use, e.g. 3.9.2+1
 zig fetch --save git+https://github.com/allyourcodebase/libressl#<refname>
 ```
 
@@ -40,4 +40,4 @@ your_exe.linkLibrary(libressl_dependency.artifact("tls")); // or "ssl", or "cryp
 
 |  Refname | LibreSSL Version | Zig `0.12.x` | Zig `0.13.x` | Zig `0.14.0-dev` |
 |----------|------------------|--------------|--------------|------------------|
-| `3.9.2`  | `3.9.2`          | ✅           | ✅          | ✅              |
+| `3.9.2+1`| `3.9.2+1`        | ✅           | ✅          | ✅              |
