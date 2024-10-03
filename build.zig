@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) !void {
     const upstream = b.dependency("libressl", .{});
     const libressl_common: LibreSslCommon = .{
         .libcrypto = b.addStaticLibrary(.{
-            .name = "cypto",
+            .name = "crypto",
             .target = target,
             .optimize = optimize,
         }),
