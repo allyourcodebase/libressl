@@ -1,11 +1,11 @@
 .{
     .name = "libressl",
-    .version = "3.9.2+1",
+    .version = "4.0.0",
     .minimum_zig_version = "0.12.0",
     .dependencies = .{
         .libressl = .{
-            .url = "https://github.com/libressl/portable/releases/download/v3.9.2/libressl-3.9.2.tar.gz",
-            .hash = "1220713b293eab87698edf5d6b9bbacf6c17684e65c42da2ad00da6e7e9cf1df5517",
+            .url = "https://github.com/libressl/portable/releases/download/v4.0.0/libressl-4.0.0.tar.gz",
+            .hash = "1220c6577f1aa9137d3c200b804838fd71315388eec5d4c9313550143d02fe69308b",
         },
     },
     .paths = .{

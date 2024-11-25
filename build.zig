@@ -128,6 +128,7 @@ pub fn build(b: *std.Build) !void {
                 libressl_common.libcrypto.defineCMacro("SHA512_ASM", null);
                 libressl_common.libcrypto.defineCMacro("WHIRLPOOL_ASM", null);
                 libressl_common.libcrypto.defineCMacro("OPENSSL_CPUID_OBJ", null);
+                libressl_common.libcrypto.defineCMacro("HAVE_GNU_STACK", null);
             } else if (tinfo.cpu.arch == .arm) {
                 libressl_common.libcrypto.addCSourceFiles(.{
                     .root = crypto_srcroot,
@@ -245,7 +246,6 @@ pub fn build(b: *std.Build) !void {
             libressl_common.defineCMacro("HAVE_STRNDUP", null);
             libressl_common.defineCMacro("HAVE_STRNLEN", null);
             libressl_common.defineCMacro("HAVE_STRSEP", null);
-            libressl_common.defineCMacro("HAVE_TIMEGM", null);
 
             libressl_common.defineCMacro("HAVE_EXPLICIT_BZERO", null);
             libressl_common.defineCMacro("HAVE_GETAUXVAL", null);
@@ -364,7 +364,6 @@ pub fn build(b: *std.Build) !void {
             libressl_common.defineCMacro("HAVE_STRNLEN", null);
             libressl_common.defineCMacro("HAVE_STRSEP", null);
             libressl_common.defineCMacro("HAVE_STRTONUM", null);
-            libressl_common.defineCMacro("HAVE_TIMEGM", null);
             libressl_common.defineCMacro("HAVE_ARC4RANDOM_BUF", null);
             libressl_common.defineCMacro("HAVE_ARC4RANDOM_UNIFORM", null);
             libressl_common.defineCMacro("HAVE_GETENTROPY", null);
@@ -429,18 +428,50 @@ pub fn build(b: *std.Build) !void {
     switch (tinfo.cpu.arch) {
         .aarch64,
         .aarch64_be,
-        => libressl_common.libcrypto.addIncludePath(
-            upstream.path(libcrypto_src_prefix ++ "bn/arch/aarch64"),
-        ),
-        .x86 => libressl_common.libcrypto.addIncludePath(
-            upstream.path(libcrypto_src_prefix ++ "bn/arch/i386"),
-        ),
-        .riscv64 => libressl_common.libcrypto.addIncludePath(
-            upstream.path(libcrypto_src_prefix ++ "bn/arch/riscv64"),
-        ),
-        .x86_64 => libressl_common.libcrypto.addIncludePath(
-            upstream.path(libcrypto_src_prefix ++ "bn/arch/amd64"),
-        ),
+        => {
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "bn/arch/aarch64"),
+            );
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/aarch64"),
+            );
+            libressl_common.libssl.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/aarch64"),
+            );
+        },
+        .x86 => {
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "bn/arch/i386"),
+            );
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/i386"),
+            );
+            libressl_common.libssl.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/i386"),
+            );
+        },
+        .riscv64 => {
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "bn/arch/riscv64"),
+            );
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/riscv64"),
+            );
+            libressl_common.libssl.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/riscv64"),
+            );
+        },
+        .x86_64 => {
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "bn/arch/amd64"),
+            );
+            libressl_common.libcrypto.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/amd64"),
+            );
+            libressl_common.libssl.addIncludePath(
+                upstream.path(libcrypto_src_prefix ++ "arch/amd64"),
+            );
+        },
 
         else => @panic("unsupported target CPU architecture"),
     }
@@ -574,9 +605,7 @@ const libssl_src_prefix = base_src_prefix ++ "ssl/";
 const libtls_src_prefix = base_src_prefix ++ "tls/";
 
 // only used on nonasm builds
-const libcrypto_nonasm: []const []const u8 = &.{
-    "aes/aes_core.c",
-};
+const libcrypto_nonasm: []const []const u8 = &.{};
 
 const libcrypto_include_paths: []const []const u8 = &.{
     libcrypto_src_prefix,
@@ -584,12 +613,14 @@ const libcrypto_include_paths: []const []const u8 = &.{
     libcrypto_src_prefix ++ "bio",
     libcrypto_src_prefix ++ "bn",
     libcrypto_src_prefix ++ "bytestring",
+    libcrypto_src_prefix ++ "conf",
     libcrypto_src_prefix ++ "dh",
     libcrypto_src_prefix ++ "dsa",
     libcrypto_src_prefix ++ "curve25519",
     libcrypto_src_prefix ++ "ec",
     libcrypto_src_prefix ++ "ecdh",
     libcrypto_src_prefix ++ "ecdsa",
+    libcrypto_src_prefix ++ "err",
     libcrypto_src_prefix ++ "evp",
     libcrypto_src_prefix ++ "hidden",
     libcrypto_src_prefix ++ "hmac",
@@ -640,19 +671,15 @@ const libcrypto_elf_x86_64_asm: []const []const u8 = &[_][]const u8{
     "aes/bsaes-elf-x86_64.S",
     "aes/vpaes-elf-x86_64.S",
     "aes/aesni-elf-x86_64.S",
-    "aes/aesni-sha1-elf-x86_64.S",
     "bn/modexp512-elf-x86_64.S",
     "bn/mont-elf-x86_64.S",
     "bn/mont5-elf-x86_64.S",
-    "camellia/cmll-elf-x86_64.S",
     "md5/md5-elf-x86_64.S",
     "modes/ghash-elf-x86_64.S",
     "rc4/rc4-elf-x86_64.S",
-    "rc4/rc4-md5-elf-x86_64.S",
     "sha/sha1-elf-x86_64.S",
     "sha/sha256-elf-x86_64.S",
     "sha/sha512-elf-x86_64.S",
-    "whrlpool/wp-elf-x86_64.S",
     "cpuid-elf-x86_64.S",
 } ++ libcrypto_common_x86_64_asm;
 
@@ -661,19 +688,15 @@ const libcrypto_macos_x86_64_asm: []const []const u8 = &[_][]const u8{
     "aes/bsaes-macosx-x86_64.S",
     "aes/vpaes-macosx-x86_64.S",
     "aes/aesni-macosx-x86_64.S",
-    "aes/aesni-sha1-macosx-x86_64.S",
     "bn/modexp512-macosx-x86_64.S",
     "bn/mont-macosx-x86_64.S",
     "bn/mont5-macosx-x86_64.S",
-    "camellia/cmll-macosx-x86_64.S",
     "md5/md5-macosx-x86_64.S",
     "modes/ghash-macosx-x86_64.S",
     "rc4/rc4-macosx-x86_64.S",
-    "rc4/rc4-md5-macosx-x86_64.S",
     "sha/sha1-macosx-x86_64.S",
     "sha/sha256-macosx-x86_64.S",
     "sha/sha512-macosx-x86_64.S",
-    "whrlpool/wp-macosx-x86_64.S",
     "cpuid-macosx-x86_64.S",
 } ++ libcrypto_common_x86_64_asm;
 
@@ -682,31 +705,17 @@ const libcrypto_mingw64_x86_64_asm: []const []const u8 = &.{
     "aes/bsaes-mingw64-x86_64.S",
     "aes/vpaes-mingw64-x86_64.S",
     "aes/aesni-mingw64-x86_64.S",
-    "aes/aesni-sha1-mingw64-x86_64.S",
-    // "bn/modexp512-mingw64-x86_64.S",
-    // "bn/mont-mingw64-x86_64.S",
-    // "bn/mont5-mingw64-x86_64.S",
-    "camellia/cmll-mingw64-x86_64.S",
     "md5/md5-mingw64-x86_64.S",
     "modes/ghash-mingw64-x86_64.S",
     "rc4/rc4-mingw64-x86_64.S",
-    "rc4/rc4-md5-mingw64-x86_64.S",
     "sha/sha1-mingw64-x86_64.S",
     "sha/sha256-mingw64-x86_64.S",
     "sha/sha512-mingw64-x86_64.S",
-    "whrlpool/wp-mingw64-x86_64.S",
     "cpuid-mingw64-x86_64.S",
 };
 
 // these are used on armv4 with asm, or a nonasm build
-const libcrypto_nonasm_or_armv4: []const []const u8 = &.{
-    "aes/aes_cbc.c",
-    "camellia/camellia.c",
-    "camellia/cmll_cbc.c",
-    "rc4/rc4_enc.c",
-    "rc4/rc4_skey.c",
-    "whrlpool/wp_block.c",
-};
+const libcrypto_nonasm_or_armv4: []const []const u8 = &.{};
 
 const libcrypto_unix_sources: []const []const u8 = &.{
     "crypto_lock.c",
@@ -777,7 +786,6 @@ const libcrypto_windows_compat: []const []const u8 = &.{
     "compat/strtonum.c",
 
     "compat/syslog_r.c",
-    "compat/timegm.c",
 
     "compat/explicit_bzero_win.c",
     "compat/getentropy_win.c",
@@ -792,21 +800,16 @@ const libcrypto_windows_compat: []const []const u8 = &.{
 const libcrypto_sources: []const []const u8 = &.{
     "cpt_err.c",
     "cryptlib.c",
+    "crypto_ex_data.c",
     "crypto_init.c",
     "cversion.c",
-    "ex_data.c",
     "malloc-wrapper.c",
     "mem_clr.c",
     "mem_dbg.c",
     "o_fips.c",
-    "o_init.c",
-    "o_str.c",
-    "aes/aes_cfb.c",
-    "aes/aes_ctr.c",
-    "aes/aes_ecb.c",
+    "aes/aes.c",
+    "aes/aes_core.c",
     "aes/aes_ige.c",
-    "aes/aes_ofb.c",
-    "aes/aes_wrap.c",
     "asn1/a_bitstr.c",
     "asn1/a_enum.c",
     "asn1/a_int.c",
@@ -867,11 +870,7 @@ const libcrypto_sources: []const []const u8 = &.{
     "asn1/x_val.c",
     "asn1/x_x509.c",
     "asn1/x_x509a.c",
-    "bf/bf_cfb64.c",
-    "bf/bf_ecb.c",
-    "bf/bf_enc.c",
-    "bf/bf_ofb64.c",
-    "bf/bf_skey.c",
+    "bf/blowfish.c",
     "bio/b_dump.c",
     "bio/b_print.c",
     "bio/b_sock.c",
@@ -921,16 +920,8 @@ const libcrypto_sources: []const []const u8 = &.{
     "bytestring/bs_ber.c",
     "bytestring/bs_cbb.c",
     "bytestring/bs_cbs.c",
-    "camellia/cmll_cfb.c",
-    "camellia/cmll_ctr.c",
-    "camellia/cmll_ecb.c",
-    "camellia/cmll_misc.c",
-    "camellia/cmll_ofb.c",
-    "cast/c_cfb64.c",
-    "cast/c_ecb.c",
-    "cast/c_enc.c",
-    "cast/c_ofb64.c",
-    "cast/c_skey.c",
+    "camellia/camellia.c",
+    "cast/cast.c",
     "chacha/chacha.c",
     "cmac/cm_ameth.c",
     "cmac/cm_pmeth.c",
@@ -967,27 +958,11 @@ const libcrypto_sources: []const []const u8 = &.{
     "ct/ct_x509v3.c",
     "curve25519/curve25519-generic.c",
     "curve25519/curve25519.c",
-    "des/cbc_cksm.c",
-    "des/cbc_enc.c",
-    "des/cfb64ede.c",
-    "des/cfb64enc.c",
-    "des/cfb_enc.c",
+    "des/des.c",
+    "des/des_cksum.c",
     "des/des_enc.c",
-    "des/ecb3_enc.c",
-    "des/ecb_enc.c",
-    "des/ede_cbcm_enc.c",
-    "des/enc_read.c",
-    "des/enc_writ.c",
-    "des/fcrypt.c",
-    "des/fcrypt_b.c",
-    "des/ofb64ede.c",
-    "des/ofb64enc.c",
-    "des/ofb_enc.c",
-    "des/pcbc_enc.c",
-    "des/qud_cksm.c",
-    "des/set_key.c",
-    "des/str2key.c",
-    "des/xcbc_enc.c",
+    "des/des_fcrypt.c",
+    "des/des_key.c",
     "dh/dh_ameth.c",
     "dh/dh_asn1.c",
     "dh/dh_check.c",
@@ -1065,7 +1040,6 @@ const libcrypto_sources: []const []const u8 = &.{
     "evp/m_sha3.c",
     "evp/m_sigver.c",
     "evp/m_sm3.c",
-    "evp/m_wp.c",
     "evp/p_legacy.c",
     "evp/p_lib.c",
     "evp/p_sign.c",
@@ -1077,13 +1051,10 @@ const libcrypto_sources: []const []const u8 = &.{
     "hmac/hm_ameth.c",
     "hmac/hm_pmeth.c",
     "hmac/hmac.c",
-    "idea/i_cbc.c",
-    "idea/i_cfb64.c",
-    "idea/i_ecb.c",
-    "idea/i_ofb64.c",
-    "idea/i_skey.c",
+    "idea/idea.c",
     "kdf/hkdf_evp.c",
     "kdf/kdf_err.c",
+    "kdf/tls1_prf.c",
     "lhash/lhash.c",
     "md4/md4.c",
     "md5/md5.c",
@@ -1149,6 +1120,7 @@ const libcrypto_sources: []const []const u8 = &.{
     "rc2/rc2_skey.c",
     "rc2/rc2cfb64.c",
     "rc2/rc2ofb64.c",
+    "rc4/rc4.c",
     "ripemd/ripemd.c",
     "rsa/rsa_ameth.c",
     "rsa/rsa_asn1.c",
@@ -1190,8 +1162,6 @@ const libcrypto_sources: []const []const u8 = &.{
     "ui/ui_err.c",
     "ui/ui_lib.c",
     "ui/ui_null.c",
-    "ui/ui_util.c",
-    "whrlpool/wp_dgst.c",
     "x509/by_dir.c",
     "x509/by_file.c",
     "x509/by_mem.c",
@@ -1232,6 +1202,7 @@ const libcrypto_sources: []const []const u8 = &.{
     "x509/x509_r2x.c",
     "x509/x509_req.c",
     "x509/x509_set.c",
+    "x509/x509_siginfo.c",
     "x509/x509_skey.c",
     "x509/x509_trs.c",
     "x509/x509_txt.c",
@@ -1252,6 +1223,7 @@ const libssl_include_paths: []const []const u8 = &.{
     libssl_src_prefix,
     libssl_src_prefix ++ "hidden",
 
+    libcrypto_src_prefix[0 .. libcrypto_src_prefix.len - 1],
     libcrypto_src_prefix ++ "bio",
 
     // these are order-dependent and they have to go after the "hidden" directory
@@ -1410,7 +1382,6 @@ const openssl_app_sources: []const []const u8 = &.{
     "sess_id.c",
     "smime.c",
     "speed.c",
-    "spkac.c",
     "ts.c",
     "verify.c",
     "version.c",
