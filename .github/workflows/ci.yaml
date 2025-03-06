@@ -35,7 +35,7 @@ jobs:
 
       - if: ${{ matrix.check-format }}
         name: Check Formatting
-        run: zig fmt --check .
+        run: zig fmt --ast-check --check .
 
       - name: Build
         run: zig build ${{ matrix.build-options }} --summary all
