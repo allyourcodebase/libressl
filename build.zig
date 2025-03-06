@@ -151,7 +151,7 @@ pub fn build(b: *std.Build) !void {
             } else {
                 build_asm = false;
             }
-        } else if (tinfo.isDarwin() and tinfo.cpu.arch == .x86_64) {
+        } else if (tinfo.os.tag.isDarwin() and tinfo.cpu.arch == .x86_64) {
             libressl_common.libcrypto.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_macos_x86_64_asm,
@@ -338,7 +338,7 @@ pub fn build(b: *std.Build) !void {
             libressl_common.linkSystemLibrary("bcrypt");
         },
 
-        else => if (tinfo.isDarwin()) {
+        else => if (tinfo.os.tag.isDarwin()) {
             libressl_common.libcrypto.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_unix_sources,

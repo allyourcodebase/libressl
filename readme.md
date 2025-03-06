@@ -38,7 +38,8 @@ your_exe.linkLibrary(libressl_dependency.artifact("tls")); // or "ssl", or "cryp
 
 ## Zig Version Support Matrix
 
-| Refname   | LibreSSL Version | Zig `0.12.x` | Zig `0.13.x` | Zig `0.14.0-dev` |
+| Refname   | LibreSSL Version | Zig `0.12.x` | Zig `0.13.x` | Zig `0.14.x` |
 |-----------|------------------|--------------|--------------|------------------|
-| `3.9.2+1` | `3.9.2`          | ✅           | ✅           | ✅               |
-| `4.0.0+1` | `4.0.0`          | ✅           | ✅           | ✅               |
+| `3.9.2+1` | `3.9.2`          | ✅           | ✅          | ❌              |
+| `4.0.0+1` | `4.0.0`          | ✅           | ✅          | ❌              |
+| `4.0.0+2` | `4.0.0`          | ❌           | ❌          | ✅              |
