@@ -12,10 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        zig-version: ["0.14.0"]
+        zig-version: ["0.14.1"]
         os: [macos-latest, windows-latest]
         include:
-          - zig-version: "0.14.0"
+          - zig-version: "0.14.1"
             check-format: true
             os: ubuntu-latest
             build-options: "-Dbuild-apps"
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
           version: ${{ matrix.zig-version }}
 

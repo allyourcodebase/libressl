@@ -11,36 +11,30 @@ pub fn build(b: *std.Build) !void {
 
     const upstream = b.dependency("libressl", .{});
     const libressl_common: LibreSslCommon = .{
-        .libcrypto = b.addStaticLibrary(.{
+        .libcrypto = b.addLibrary(.{
             .name = "crypto",
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
         }),
-        .libssl = b.addStaticLibrary(.{
+        .libssl = b.addLibrary(.{
             .name = "ssl",
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
         }),
-        .libtls = b.addStaticLibrary(.{
+        .libtls = b.addLibrary(.{
             .name = "tls",
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
         }),
         .apps = .{
             .nc = b.addExecutable(.{
                 .name = "nc",
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
             }),
             .ocspcheck = b.addExecutable(.{
                 .name = "ocspcheck",
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
             }),
             .openssl = b.addExecutable(.{
                 .name = "openssl",
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{ .target = target, .optimize = optimize }),
             }),
         },
     };
