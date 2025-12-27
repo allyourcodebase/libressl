@@ -21,7 +21,7 @@ First, update your `build.zig.zon`:
 ```sh
 # Initialize a `zig build` project if you haven't already
 zig init
-# replace <refname> with the version you want to use, e.g. 4.0.0
+# replace <refname> with the version you want to use, e.g. 4.0.0+4
 zig fetch --save git+https://github.com/allyourcodebase/libressl#<refname>
 ```
 
@@ -36,11 +36,20 @@ const libressl_dependency = b.dependency("libressl", .{
 your_exe.linkLibrary(libressl_dependency.artifact("tls")); // or "ssl", or "crypto"
 ```
 
+## Options
+
+```
+  -Denable-asm=[bool]          Enable compiling assembly routines, if available (default: true)
+  -Dopenssldir=[string]        Set the default libressl configuration/certificate directory
+  -Dbuild-apps=[bool]          Build the CLI programs nc, ocspcheck, and openssl (default: false)
+```
+
 ## Zig Version Support Matrix
 
-| Refname   | LibreSSL Version | Zig `0.15.0-dev` | Zig `0.14.x` | Zig `0.13.x` | Zig `0.12.x` |
-|-----------|------------------|------------------|--------------|--------------|--------------|
-| `4.0.0+3` | `4.0.0`          | ✅               | ✅           | ❌           | ❌           |
-| `4.0.0+2` | `4.0.0`          | ❌               | ✅           | ❌           | ❌           |
-| `4.0.0+1` | `4.0.0`          | ❌               | ❌           | ✅           | ✅           |
-| `3.9.2+1` | `3.9.2`          | ❌               | ❌           | ✅           | ✅           |
+| Refname   | LibreSSL Version | Zig `0.16.0-dev` | Zig `0.15.x` | Zig `0.14.x` | Zig `0.13.x` | Zig `0.12.x` |
+|-----------|------------------|------------------|--------------|--------------|--------------|--------------|
+| `4.0.0+4` | `4.0.0`          | ✅               | ✅           | ✅           | ❌           | ❌           |
+| `4.0.0+3` | `4.0.0`          | ❌               | ✅           | ✅           | ❌           | ❌           |
+| `4.0.0+2` | `4.0.0`          | ❌               | ❌           | ✅           | ❌           | ❌           |
+| `4.0.0+1` | `4.0.0`          | ❌               | ❌           | ❌           | ✅           | ✅           |
+| `3.9.2+1` | `3.9.2`          | ❌               | ❌           | ❌           | ✅           | ✅           |

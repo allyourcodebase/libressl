@@ -16,17 +16,17 @@ jobs:
         os: [macos-latest, windows-latest]
         include:
           - zig-version: "0.14.1"
-            check-format: true
             os: ubuntu-latest
-            build-options: "-Dbuild-apps"
 
           - zig-version: "master"
+            check-format: true
+            build-options: "-Dbuild-apps"
             os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v2

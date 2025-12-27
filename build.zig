@@ -59,40 +59,40 @@ pub fn build(b: *std.Build) !void {
     };
 
     const crypto_srcroot = upstream.path("crypto");
-    libressl_common.libcrypto.addCSourceFiles(.{
+    libressl_common.libcrypto.root_module.addCSourceFiles(.{
         .root = crypto_srcroot,
         .files = libcrypto_sources,
         .flags = cflags,
     });
 
     const ssl_srcroot = upstream.path("ssl");
-    libressl_common.libssl.addCSourceFiles(.{
+    libressl_common.libssl.root_module.addCSourceFiles(.{
         .root = ssl_srcroot,
         .files = libssl_sources,
         .flags = cflags,
     });
 
     const tls_srcroot = upstream.path("tls");
-    libressl_common.libtls.addCSourceFiles(.{
+    libressl_common.libtls.root_module.addCSourceFiles(.{
         .root = tls_srcroot,
         .files = libtls_sources,
         .flags = cflags,
     });
 
     const nc_srcroot = upstream.path("apps/nc");
-    libressl_common.apps.nc.addCSourceFiles(.{
+    libressl_common.apps.nc.root_module.addCSourceFiles(.{
         .root = nc_srcroot,
         .files = nc_app_sources,
         .flags = cflags,
     });
     const ocspcheck_srcroot = upstream.path("apps/ocspcheck");
-    libressl_common.apps.ocspcheck.addCSourceFiles(.{
+    libressl_common.apps.ocspcheck.root_module.addCSourceFiles(.{
         .root = ocspcheck_srcroot,
         .files = ocspcheck_app_sources,
         .flags = cflags,
     });
     const openssl_srcroot = upstream.path("apps/openssl");
-    libressl_common.apps.openssl.addCSourceFiles(.{
+    libressl_common.apps.openssl.root_module.addCSourceFiles(.{
         .root = openssl_srcroot,
         .files = openssl_app_sources,
         .flags = cflags,
@@ -102,7 +102,7 @@ pub fn build(b: *std.Build) !void {
     if (build_asm) {
         if (tinfo.ofmt == .elf) {
             if (tinfo.cpu.arch == .x86_64) {
-                libressl_common.libcrypto.addCSourceFiles(.{
+                libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
                     .files = libcrypto_elf_x86_64_asm,
                     .flags = cflags,
@@ -124,12 +124,12 @@ pub fn build(b: *std.Build) !void {
                 libressl_common.libcrypto.root_module.addCMacro("OPENSSL_CPUID_OBJ", "");
                 libressl_common.libcrypto.root_module.addCMacro("HAVE_GNU_STACK", "");
             } else if (tinfo.cpu.arch == .arm) {
-                libressl_common.libcrypto.addCSourceFiles(.{
+                libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
                     .files = libcrypto_elf_armv4_asm,
                     .flags = cflags,
                 });
-                libressl_common.libcrypto.addCSourceFiles(.{
+                libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
                     .files = libcrypto_nonasm_or_armv4,
                     .flags = cflags,
@@ -146,7 +146,7 @@ pub fn build(b: *std.Build) !void {
                 build_asm = false;
             }
         } else if (tinfo.os.tag.isDarwin() and tinfo.cpu.arch == .x86_64) {
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_macos_x86_64_asm,
                 .flags = cflags,
@@ -167,7 +167,7 @@ pub fn build(b: *std.Build) !void {
             libressl_common.libcrypto.root_module.addCMacro("WHIRLPOOL_ASM", "");
             libressl_common.libcrypto.root_module.addCMacro("OPENSSL_CPUID_OBJ", "");
         } else if (tinfo.os.tag == .windows and tinfo.abi == .gnu) {
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_mingw64_x86_64_asm,
                 .flags = cflags,
@@ -189,12 +189,12 @@ pub fn build(b: *std.Build) !void {
         }
     }
     if (!build_asm) {
-        libressl_common.libcrypto.addCSourceFiles(.{
+        libressl_common.libcrypto.root_module.addCSourceFiles(.{
             .root = crypto_srcroot,
             .files = libcrypto_nonasm_or_armv4,
             .flags = cflags,
         });
-        libressl_common.libcrypto.addCSourceFiles(.{
+        libressl_common.libcrypto.root_module.addCSourceFiles(.{
             .root = crypto_srcroot,
             .files = libcrypto_nonasm,
             .flags = cflags,
@@ -211,18 +211,18 @@ pub fn build(b: *std.Build) !void {
 
     switch (tinfo.os.tag) {
         .linux => {
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_unix_sources,
                 .flags = cflags,
             });
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_linux_compat,
                 .flags = cflags,
             });
 
-            libressl_common.apps.openssl.addCSourceFiles(.{
+            libressl_common.apps.openssl.root_module.addCSourceFiles(.{
                 .root = openssl_srcroot,
                 .files = openssl_app_posix_sources,
                 .flags = cflags,
@@ -252,13 +252,13 @@ pub fn build(b: *std.Build) !void {
             libressl_common.addCMacro("HAVE_NETINET_IP_H", "");
 
             if (tinfo.abi.isGnu()) {
-                libressl_common.libcrypto.addCSourceFiles(.{
+                libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
                     .files = libcrypto_linux_glibc_compat,
                     .flags = cflags,
                 });
             } else if (tinfo.abi.isMusl()) {
-                libressl_common.libcrypto.addCSourceFiles(.{
+                libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
                     .files = libcrypto_linux_musl_compat,
                     .flags = cflags,
@@ -277,23 +277,23 @@ pub fn build(b: *std.Build) !void {
                 return error.Unsupported;
             }
 
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_windows_sources,
                 .flags = cflags,
             });
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_windows_compat,
                 .flags = cflags,
             });
-            libressl_common.libtls.addCSourceFiles(.{
+            libressl_common.libtls.root_module.addCSourceFiles(.{
                 .root = tls_srcroot,
                 .files = libtls_windows_sources,
                 .flags = cflags,
             });
 
-            libressl_common.apps.openssl.addCSourceFiles(.{
+            libressl_common.apps.openssl.root_module.addCSourceFiles(.{
                 .root = openssl_srcroot,
                 .files = openssl_app_windows_sources,
                 .flags = cflags,
@@ -333,17 +333,17 @@ pub fn build(b: *std.Build) !void {
         },
 
         else => if (tinfo.os.tag.isDarwin()) {
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_unix_sources,
                 .flags = cflags,
             });
-            libressl_common.libcrypto.addCSourceFiles(.{
+            libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = libcrypto_macos_compat,
                 .flags = cflags,
             });
-            libressl_common.apps.openssl.addCSourceFiles(.{
+            libressl_common.apps.openssl.root_module.addCSourceFiles(.{
                 .root = openssl_srcroot,
                 .files = openssl_app_posix_sources,
                 .flags = cflags,
@@ -399,70 +399,70 @@ pub fn build(b: *std.Build) !void {
     );
 
     for (libcrypto_include_paths) |path| {
-        libressl_common.libcrypto.addIncludePath(upstream.path(path));
-        libressl_common.apps.nc.addIncludePath(upstream.path(path));
-        libressl_common.apps.ocspcheck.addIncludePath(upstream.path(path));
-        libressl_common.apps.openssl.addIncludePath(upstream.path(path));
+        libressl_common.libcrypto.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.nc.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.ocspcheck.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.openssl.root_module.addIncludePath(upstream.path(path));
     }
 
     for (libssl_include_paths) |path| {
-        libressl_common.libssl.addIncludePath(upstream.path(path));
-        libressl_common.apps.nc.addIncludePath(upstream.path(path));
-        libressl_common.apps.ocspcheck.addIncludePath(upstream.path(path));
-        libressl_common.apps.openssl.addIncludePath(upstream.path(path));
+        libressl_common.libssl.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.nc.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.ocspcheck.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.openssl.root_module.addIncludePath(upstream.path(path));
     }
 
     for (libtls_include_paths) |path| {
-        libressl_common.libtls.addIncludePath(upstream.path(path));
-        libressl_common.apps.nc.addIncludePath(upstream.path(path));
+        libressl_common.libtls.root_module.addIncludePath(upstream.path(path));
+        libressl_common.apps.nc.root_module.addIncludePath(upstream.path(path));
     }
 
-    libressl_common.apps.nc.addIncludePath(upstream.path("apps/nc/compat"));
+    libressl_common.apps.nc.root_module.addIncludePath(upstream.path("apps/nc/compat"));
 
     switch (tinfo.cpu.arch) {
         .aarch64,
         .aarch64_be,
         => {
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "bn/arch/aarch64"),
             );
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/aarch64"),
             );
-            libressl_common.libssl.addIncludePath(
+            libressl_common.libssl.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/aarch64"),
             );
         },
         .x86 => {
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "bn/arch/i386"),
             );
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/i386"),
             );
-            libressl_common.libssl.addIncludePath(
+            libressl_common.libssl.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/i386"),
             );
         },
         .riscv64 => {
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "bn/arch/riscv64"),
             );
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/riscv64"),
             );
-            libressl_common.libssl.addIncludePath(
+            libressl_common.libssl.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/riscv64"),
             );
         },
         .x86_64 => {
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "bn/arch/amd64"),
             );
-            libressl_common.libcrypto.addIncludePath(
+            libressl_common.libcrypto.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/amd64"),
             );
-            libressl_common.libssl.addIncludePath(
+            libressl_common.libssl.root_module.addIncludePath(
                 upstream.path(libcrypto_src_prefix ++ "arch/amd64"),
             );
         },
@@ -479,25 +479,25 @@ pub fn build(b: *std.Build) !void {
     libressl_common.libtls.step.dependOn(&copy_conf_header.step);
 
     const conf_header_dir = copy_conf_header.getDirectory();
-    libressl_common.libcrypto.addIncludePath(conf_header_dir);
-    libressl_common.libssl.addIncludePath(conf_header_dir);
-    libressl_common.libtls.addIncludePath(conf_header_dir);
+    libressl_common.libcrypto.root_module.addIncludePath(conf_header_dir);
+    libressl_common.libssl.root_module.addIncludePath(conf_header_dir);
+    libressl_common.libtls.root_module.addIncludePath(conf_header_dir);
 
-    libressl_common.libssl.linkLibrary(libressl_common.libcrypto);
+    libressl_common.libssl.root_module.linkLibrary(libressl_common.libcrypto);
 
     // cmake builds libtls with libcrypto and libssl symbols jammed into it, but
     // this does not.
-    libressl_common.libtls.linkLibrary(libressl_common.libcrypto);
-    libressl_common.libtls.linkLibrary(libressl_common.libssl);
+    libressl_common.libtls.root_module.linkLibrary(libressl_common.libcrypto);
+    libressl_common.libtls.root_module.linkLibrary(libressl_common.libssl);
 
     libressl_common.installLibraries(b);
 
     // weird hack here
     libressl_common.apps.nc.root_module.addCMacro("DEFAULT_CA_FILE", b.pathJoin(&.{ b.install_prefix, "etc", "ssl", "cert.pem" }));
     libressl_common.apps.ocspcheck.root_module.addCMacro("DEFAULT_CA_FILE", b.pathJoin(&.{ b.install_prefix, "etc", "ssl", "cert.pem" }));
-    libressl_common.apps.nc.linkLibrary(libressl_common.libtls);
-    libressl_common.apps.ocspcheck.linkLibrary(libressl_common.libtls);
-    libressl_common.apps.openssl.linkLibrary(libressl_common.libssl);
+    libressl_common.apps.nc.root_module.linkLibrary(libressl_common.libtls);
+    libressl_common.apps.ocspcheck.root_module.linkLibrary(libressl_common.libtls);
+    libressl_common.apps.openssl.root_module.linkLibrary(libressl_common.libssl);
 
     if (build_apps) {
         libressl_common.installApps(b, upstream);
@@ -515,15 +515,15 @@ const LibreSslCommon = struct {
     },
 
     pub fn linkLibC(self: LibreSslCommon) void {
-        self.libcrypto.linkLibC();
-        self.libssl.linkLibC();
-        self.libtls.linkLibC();
+        self.libcrypto.root_module.link_libc = true;
+        self.libssl.root_module.link_libc = true;
+        self.libtls.root_module.link_libc = true;
     }
 
     pub fn linkSystemLibrary(self: LibreSslCommon, library: []const u8) void {
-        self.libcrypto.linkSystemLibrary(library);
-        self.libssl.linkSystemLibrary(library);
-        self.libtls.linkSystemLibrary(library);
+        self.libcrypto.root_module.linkSystemLibrary(library, .{});
+        self.libssl.root_module.linkSystemLibrary(library, .{});
+        self.libtls.root_module.linkSystemLibrary(library, .{});
     }
 
     pub fn addCMacroForLibs(self: LibreSslCommon, name: []const u8, value: []const u8) void {
