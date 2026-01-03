@@ -567,11 +567,12 @@ const LibreSslCommon = struct {
         base: []const u8,
         skiplist: []const SkipSpec,
     ) !void {
-        const dir = try upstream.builder.build_root.handle.openDir(base, .{ .iterate = true });
+        const dir = try upstream.builder.build_root.handle.openDir(b.graph.io, base, .{ .iterate = true });
+        defer dir.close(b.graph.io);
         var walker = try dir.walk(b.allocator);
         defer walker.deinit();
 
-        walker: while (try walker.next()) |child| {
+        walker: while (try walker.next(b.graph.io)) |child| {
             for (skiplist) |entry| {
                 switch (entry) {
                     .starts_with => |name| if (std.mem.startsWith(u8, child.path, name)) continue :walker,
@@ -580,8 +581,7 @@ const LibreSslCommon = struct {
             }
 
             if (std.mem.endsWith(u8, child.basename, ".h")) {
-                const full = b.pathJoin(&.{ base, child.path });
-                self.installHeader(upstream.path(full), child.path);
+                self.installHeader(upstream.path(base).path(b, child.path), child.path);
             }
         }
     }
