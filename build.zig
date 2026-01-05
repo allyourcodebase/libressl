@@ -385,18 +385,9 @@ pub fn build(b: *std.Build) !void {
         else => @panic("unsupported target CPU arch"),
     });
 
-    libressl_common.installHeader(conf_header, "openssl/opensslconf.h");
-
-    try libressl_common.installHeaders(
-        b,
-        upstream,
-        source_header_prefix,
-        &.{
-            .{ .starts_with = "compat" },
-            .{ .starts_with = "arch" },
-            .{ .ends_with = "pqueue.h" },
-        },
-    );
+    libressl_common.libtls.installHeader(upstream.path("include/tls.h"), "tls.h");
+    libressl_common.libssl.installHeader(conf_header, "openssl/opensslconf.h");
+    libressl_common.libssl.installHeadersDirectory(upstream.path("include/openssl"), "openssl", .{});
 
     for (libcrypto_include_paths) |path| {
         libressl_common.libcrypto.root_module.addIncludePath(upstream.path(path));
@@ -558,32 +549,6 @@ const LibreSslCommon = struct {
         self.libcrypto.installHeader(source, dest);
         self.libssl.installHeader(source, dest);
         self.libtls.installHeader(source, dest);
-    }
-
-    pub fn installHeaders(
-        self: LibreSslCommon,
-        b: *std.Build,
-        upstream: *std.Build.Dependency,
-        base: []const u8,
-        skiplist: []const SkipSpec,
-    ) !void {
-        const dir = try upstream.builder.build_root.handle.openDir(b.graph.io, base, .{ .iterate = true });
-        defer dir.close(b.graph.io);
-        var walker = try dir.walk(b.allocator);
-        defer walker.deinit();
-
-        walker: while (try walker.next(b.graph.io)) |child| {
-            for (skiplist) |entry| {
-                switch (entry) {
-                    .starts_with => |name| if (std.mem.startsWith(u8, child.path, name)) continue :walker,
-                    .ends_with => |name| if (std.mem.endsWith(u8, child.path, name)) continue :walker,
-                }
-            }
-
-            if (std.mem.endsWith(u8, child.basename, ".h")) {
-                self.installHeader(upstream.path(base).path(b, child.path), child.path);
-            }
-        }
     }
 };
 
