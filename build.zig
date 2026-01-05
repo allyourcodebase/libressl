@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const gen = @import("generated.zig");
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
@@ -104,7 +105,7 @@ pub fn build(b: *std.Build) !void {
             if (tinfo.cpu.arch == .x86_64) {
                 libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
-                    .files = libcrypto_elf_x86_64_asm,
+                    .files = &gen.libcrypto_elf_x86_64_asm,
                     .flags = cflags,
                 });
 
@@ -126,7 +127,7 @@ pub fn build(b: *std.Build) !void {
             } else if (tinfo.cpu.arch == .arm) {
                 libressl_common.libcrypto.root_module.addCSourceFiles(.{
                     .root = crypto_srcroot,
-                    .files = libcrypto_elf_armv4_asm,
+                    .files = &gen.libcrypto_elf_armv4_asm,
                     .flags = cflags,
                 });
                 libressl_common.libcrypto.root_module.addCSourceFiles(.{
@@ -148,7 +149,7 @@ pub fn build(b: *std.Build) !void {
         } else if (tinfo.os.tag.isDarwin() and tinfo.cpu.arch == .x86_64) {
             libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
-                .files = libcrypto_macos_x86_64_asm,
+                .files = &gen.libcrypto_macos_x86_64_asm,
                 .flags = cflags,
             });
 
@@ -169,7 +170,7 @@ pub fn build(b: *std.Build) !void {
         } else if (tinfo.os.tag == .windows and tinfo.abi == .gnu) {
             libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
-                .files = libcrypto_mingw64_x86_64_asm,
+                .files = &gen.libcrypto_mingw64_x86_64_asm,
                 .flags = cflags,
             });
             libressl_common.libcrypto.root_module.addCMacro("AES_ASM", "");
@@ -597,80 +598,6 @@ const libcrypto_include_paths: []const []const u8 = &.{
     // in the source tree. cool.
     source_header_prefix ++ "compat",
     source_header_prefix,
-};
-
-const libcrypto_elf_armv4_asm: []const []const u8 = &.{
-    "aes/aes-elf-armv4.S",
-    "bn/mont-elf-armv4.S",
-    "sha/sha1-elf-armv4.S",
-    "sha/sha512-elf-armv4.S",
-    "sha/sha256-elf-armv4.S",
-    "modes/ghash-elf-armv4.S",
-    "armv4cpuid.S",
-    "armcap.c",
-};
-
-const libcrypto_common_x86_64_asm: []const []const u8 = &.{
-    "bn/arch/amd64/bignum_add.S",
-    "bn/arch/amd64/bignum_cmadd.S",
-    "bn/arch/amd64/bignum_cmul.S",
-    "bn/arch/amd64/bignum_mul.S",
-    "bn/arch/amd64/bignum_mul_4_8_alt.S",
-    "bn/arch/amd64/bignum_mul_8_16_alt.S",
-    "bn/arch/amd64/bignum_sqr.S",
-    "bn/arch/amd64/bignum_sqr_4_8_alt.S",
-    "bn/arch/amd64/bignum_sqr_8_16_alt.S",
-    "bn/arch/amd64/bignum_sub.S",
-    "bn/arch/amd64/word_clz.S",
-    "bn/arch/amd64/bn_arch.c",
-};
-
-const libcrypto_elf_x86_64_asm: []const []const u8 = &[_][]const u8{
-    "aes/aes-elf-x86_64.S",
-    "aes/bsaes-elf-x86_64.S",
-    "aes/vpaes-elf-x86_64.S",
-    "aes/aesni-elf-x86_64.S",
-    "bn/modexp512-elf-x86_64.S",
-    "bn/mont-elf-x86_64.S",
-    "bn/mont5-elf-x86_64.S",
-    "md5/md5-elf-x86_64.S",
-    "modes/ghash-elf-x86_64.S",
-    "rc4/rc4-elf-x86_64.S",
-    "sha/sha1-elf-x86_64.S",
-    "sha/sha256-elf-x86_64.S",
-    "sha/sha512-elf-x86_64.S",
-    "cpuid-elf-x86_64.S",
-} ++ libcrypto_common_x86_64_asm;
-
-const libcrypto_macos_x86_64_asm: []const []const u8 = &[_][]const u8{
-    "aes/aes-macosx-x86_64.S",
-    "aes/bsaes-macosx-x86_64.S",
-    "aes/vpaes-macosx-x86_64.S",
-    "aes/aesni-macosx-x86_64.S",
-    "bn/modexp512-macosx-x86_64.S",
-    "bn/mont-macosx-x86_64.S",
-    "bn/mont5-macosx-x86_64.S",
-    "md5/md5-macosx-x86_64.S",
-    "modes/ghash-macosx-x86_64.S",
-    "rc4/rc4-macosx-x86_64.S",
-    "sha/sha1-macosx-x86_64.S",
-    "sha/sha256-macosx-x86_64.S",
-    "sha/sha512-macosx-x86_64.S",
-    "cpuid-macosx-x86_64.S",
-} ++ libcrypto_common_x86_64_asm;
-
-const libcrypto_mingw64_x86_64_asm: []const []const u8 = &.{
-    "aes/aes-mingw64-x86_64.S",
-    "aes/bsaes-mingw64-x86_64.S",
-    "aes/vpaes-mingw64-x86_64.S",
-    "aes/aesni-mingw64-x86_64.S",
-    "md5/md5-mingw64-x86_64.S",
-    "modes/ghash-mingw64-x86_64.S",
-    "rc4/rc4-mingw64-x86_64.S",
-    "sha/sha1-mingw64-x86_64.S",
-    "sha/sha256-mingw64-x86_64.S",
-    "sha/sha512-mingw64-x86_64.S",
-    "cpuid-mingw64-x86_64.S",
 };
 
 // these are used on armv4 with asm, or a nonasm build
