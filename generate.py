@@ -89,9 +89,11 @@ interest = {
 # timingsafe_memcmp: OpenBSD 5.6, FreeBSD 11.1, DragonFly 5.6
 # arc4random_buf: OpenBSD 2.1, FreeBSD 8.0, NetBSD 10.0, glibc 2.36
 # getentropy: OpenBSD 5.6, FreeBSD 12.0, NetBSD 10.0, POSIX.1-2024
+# getdelim, getline: POSIX.1, FreeBSD 8.0, OpenBSD 5.2, NetBSD 6.0
+# ftruncate: 4.2BSD
 
 common = {'HAVE_STRNLEN'}
-not_windows = common | {'HAVE_STRNDUP', 'HAVE_STRSEP', 'HAVE_ASPRINTF', 'HAVE_GETPAGESIZE', 'HAVE_GETENTROPY'}
+not_windows = common | {'HAVE_STRNDUP', 'HAVE_STRSEP', 'HAVE_ASPRINTF', 'HAVE_GETPAGESIZE', 'HAVE_GETENTROPY', 'HAVE_GETDELIM', 'HAVE_GETLINE', 'HAVE_FTRUNCATE'}
 bsd = not_windows | {'HAVE_STRLCAT', 'HAVE_STRLCPY', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_REALLOCARRAY', 'HAVE_ARC4RANDOM_BUF'}
 
 windows = common | {'HOST_WIN'}
