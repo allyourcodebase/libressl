@@ -40,7 +40,7 @@ def extractFileLists(reader, desired: set[str]):
 
 def getFileList(fileLists: dict, name: str, conditions: set[str]) -> list[str]:
     result = []
-    #print('---', name, conditions)
+    #print('---', name, conditions, file=sys.stderr)
     for (listName, conds), files in fileLists.items():
         if listName == name:
             take = True
@@ -51,7 +51,7 @@ def getFileList(fileLists: dict, name: str, conditions: set[str]) -> list[str]:
                         break
                 elif cond not in conditions:
                     take = False
-            #print(conds, take)
+            #print(conds, take, file=sys.stderr)
             if take:
                 result += files
     return result
