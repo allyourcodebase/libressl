@@ -72,7 +72,7 @@ pub fn build(b: *std.Build) !void {
     const ssl_srcroot = upstream.path("ssl");
     libressl_common.libssl.root_module.addCSourceFiles(.{
         .root = ssl_srcroot,
-        .files = libssl_sources,
+        .files = &gen.libssl_sources,
         .flags = cflags,
     });
 
@@ -276,11 +276,6 @@ pub fn build(b: *std.Build) !void {
             libressl_common.libcrypto.root_module.addCSourceFiles(.{
                 .root = crypto_srcroot,
                 .files = &gen.libcompat_windows,
-                .flags = cflags,
-            });
-            libressl_common.libtls.root_module.addCSourceFiles(.{
-                .root = tls_srcroot,
-                .files = libtls_windows_sources,
                 .flags = cflags,
             });
 
@@ -600,67 +595,6 @@ const libssl_include_paths: []const []const u8 = &.{
     // in the source tree. cool.
     source_header_prefix ++ "compat",
     source_header_prefix,
-};
-
-const libssl_sources: []const []const u8 = &.{
-    // these are compiled separately by Cmake, with a slightly different include path.
-    // It appears they're only linked if shared libraries are being built? I don't get
-    // it. I doubt always building them causes a problem, though.
-    "bs_ber.c",
-    "bs_cbb.c",
-    "bs_cbs.c",
-    // SSL_SRC
-    "bio_ssl.c",
-    "d1_both.c",
-    "d1_lib.c",
-    "d1_pkt.c",
-    "d1_srtp.c",
-    "pqueue.c",
-    "s3_cbc.c",
-    "s3_lib.c",
-    "ssl_asn1.c",
-    "ssl_both.c",
-    "ssl_cert.c",
-    "ssl_ciph.c",
-    "ssl_ciphers.c",
-    "ssl_clnt.c",
-    "ssl_err.c",
-    "ssl_init.c",
-    "ssl_kex.c",
-    "ssl_lib.c",
-    "ssl_methods.c",
-    "ssl_packet.c",
-    "ssl_pkt.c",
-    "ssl_rsa.c",
-    "ssl_seclevel.c",
-    "ssl_sess.c",
-    "ssl_sigalgs.c",
-    "ssl_srvr.c",
-    "ssl_stat.c",
-    "ssl_tlsext.c",
-    "ssl_transcript.c",
-    "ssl_txt.c",
-    "ssl_versions.c",
-    "t1_enc.c",
-    "t1_lib.c",
-    "tls_buffer.c",
-    "tls_content.c",
-    "tls_key_share.c",
-    "tls_lib.c",
-    "tls12_key_schedule.c",
-    "tls12_lib.c",
-    "tls12_record_layer.c",
-    "tls13_client.c",
-    "tls13_error.c",
-    "tls13_handshake.c",
-    "tls13_handshake_msg.c",
-    "tls13_key_schedule.c",
-    "tls13_legacy.c",
-    "tls13_lib.c",
-    "tls13_quic.c",
-    "tls13_record.c",
-    "tls13_record_layer.c",
-    "tls13_server.c",
 };
 
 const libtls_include_paths: []const []const u8 = &.{

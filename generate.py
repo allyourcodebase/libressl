@@ -64,6 +64,7 @@ interest = {
     'libcrypto_la_SOURCES': None,
     'libcompat_la_SOURCES': None,
     'libtls_la_SOURCES': None,
+    'libssl_la_SOURCES': None,
 }
 
 # linux + glibc:
@@ -117,6 +118,7 @@ exported['libcompat_linux_glibc_2_38'] = getFileList(fileLists, 'libcompat_la_SO
 exported['libcompat_linux_musl'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_musl)
 exported['libtls_windows'] = getFileList(fileLists, 'libtls_la_SOURCES', windows)
 exported['libtls_unix'] = getFileList(fileLists, 'libtls_la_SOURCES', set())
+exported['libssl_sources'] = getFileList(fileLists, 'libssl_la_SOURCES', set())
 
 for key, value in interest.items():
     if value is None:
