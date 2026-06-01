@@ -79,7 +79,10 @@ pub fn build(b: *std.Build) !void {
     const tls_srcroot = upstream.path("tls");
     libressl_common.libtls.root_module.addCSourceFiles(.{
         .root = tls_srcroot,
-        .files = libtls_sources,
+        .files = switch (tinfo.os.tag) {
+            .windows => &gen.libtls_windows,
+            else => &gen.libtls_unix,
+        },
         .flags = cflags,
     });
 
@@ -664,27 +667,6 @@ const libtls_include_paths: []const []const u8 = &.{
     libssl_src_prefix,
     source_header_prefix ++ "compat",
     source_header_prefix,
-};
-
-const libtls_sources: []const []const u8 = &.{
-    "tls.c",
-    "tls_bio_cb.c",
-    "tls_client.c",
-    "tls_config.c",
-    "tls_conninfo.c",
-    "tls_keypair.c",
-    "tls_server.c",
-    "tls_signer.c",
-    "tls_ocsp.c",
-    "tls_peer.c",
-    "tls_util.c",
-    "tls_verify.c",
-};
-
-const libtls_windows_sources: []const []const u8 = &.{
-    "compat/ftruncate.c",
-    "compat/pread.c",
-    "compat/pwrite.c",
 };
 
 const nc_app_sources: []const []const u8 = &.{

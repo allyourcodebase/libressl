@@ -8,4 +8,4 @@ URL="https://github.com/libressl/portable/releases/download/v$VERSION/libressl-$
 HASH=$(zig fetch $URL)
 zig fetch --save=libressl $URL
 
-cat zig-pkg/$HASH/crypto/Makefile.am* | uv run generate.py | zig fmt --stdin > generated.zig
+cat zig-pkg/$HASH/{crypto,tls}/Makefile.am* | uv run generate.py | zig fmt --stdin > generated.zig

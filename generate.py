@@ -61,8 +61,9 @@ interest = {
     'ASM_X86_64_ELF': 'libcrypto_elf_x86_64_asm',
     'ASM_X86_64_MACOSX': 'libcrypto_macos_x86_64_asm',
     'ASM_X86_64_MINGW64': 'libcrypto_mingw64_x86_64_asm',
-    'libcrypto_la_SOURCES': 'libcrypto_sources',
-    'libcompat_la_SOURCES': 'libcrypto_compat_sources',
+    'libcrypto_la_SOURCES': None,
+    'libcompat_la_SOURCES': None,
+    'libtls_la_SOURCES': None,
 }
 
 # linux + glibc:
@@ -114,9 +115,11 @@ exported['libcompat_windows'] = getFileList(fileLists, 'libcompat_la_SOURCES', w
 exported['libcompat_linux_glibc_2_36'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_glibc_2_36)
 exported['libcompat_linux_glibc_2_38'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_glibc_2_38)
 exported['libcompat_linux_musl'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_musl)
+exported['libtls_windows'] = getFileList(fileLists, 'libtls_la_SOURCES', windows)
+exported['libtls_unix'] = getFileList(fileLists, 'libtls_la_SOURCES', set())
 
 for key, value in interest.items():
-    if key[:3] != 'ASM':
+    if value is None:
         continue
     exported[value] = getFileList(fileLists, key, set())
 

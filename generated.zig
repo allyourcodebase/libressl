@@ -904,6 +904,37 @@ pub const libcompat_linux_musl = .{
     "compat/timingsafe_memcmp.c",
     "compat/timingsafe_bcmp.c",
 };
+pub const libtls_windows = .{
+    "tls.c",
+    "tls_client.c",
+    "tls_bio_cb.c",
+    "tls_config.c",
+    "tls_conninfo.c",
+    "tls_keypair.c",
+    "tls_server.c",
+    "tls_signer.c",
+    "tls_ocsp.c",
+    "tls_peer.c",
+    "tls_util.c",
+    "tls_verify.c",
+    "compat/ftruncate.c",
+    "compat/pread.c",
+    "compat/pwrite.c",
+};
+pub const libtls_unix = .{
+    "tls.c",
+    "tls_client.c",
+    "tls_bio_cb.c",
+    "tls_config.c",
+    "tls_conninfo.c",
+    "tls_keypair.c",
+    "tls_server.c",
+    "tls_signer.c",
+    "tls_ocsp.c",
+    "tls_peer.c",
+    "tls_util.c",
+    "tls_verify.c",
+};
 pub const libcrypto_elf_armv4_asm = .{
     "aes/aes-elf-armv4.S",
     "bn/mont-elf-armv4.S",
