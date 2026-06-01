@@ -40,7 +40,7 @@ def extractFileLists(reader, desired: set[str]):
 
 def getFileList(fileLists: dict, name: str, conditions: set[str]) -> list[str]:
     result = []
-    print('---', name, conditions)
+    #print('---', name, conditions)
     for (listName, conds), files in fileLists.items():
         if listName == name:
             take = True
@@ -51,7 +51,7 @@ def getFileList(fileLists: dict, name: str, conditions: set[str]) -> list[str]:
                         break
                 elif cond not in conditions:
                     take = False
-            print(conds, take)
+            #print(conds, take)
             if take:
                 result += files
     return result
@@ -86,31 +86,39 @@ interest = {
 # timingsafe_bcmp: OpenBSD 4.9, FreeBSD 11.1, DragonFly 5.6
 # timingsafe_memcmp: OpenBSD 5.6, FreeBSD 11.1, DragonFly 5.6
 # arc4random_buf: OpenBSD 2.1, FreeBSD 8.0, NetBSD 10.0, glibc 2.36
+# getentropy: OpenBSD 5.6, FreeBSD 12.0, NetBSD 10.0, POSIX.1-2024
 
 common = {'HAVE_STRNLEN'}
-not_windows = common | {'HAVE_STRNDUP', 'HAVE_STRSEP', 'HAVE_ASPRINTF', 'HAVE_GETPAGESIZE'}
+not_windows = common | {'HAVE_STRNDUP', 'HAVE_STRSEP', 'HAVE_ASPRINTF', 'HAVE_GETPAGESIZE', 'HAVE_GETENTROPY'}
 bsd = not_windows | {'HAVE_STRLCAT', 'HAVE_STRLCPY', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_REALLOCARRAY', 'HAVE_ARC4RANDOM_BUF'}
 
 windows = common | {'HOST_WIN'}
 openbsd = bsd | {'HOST_OPENBSD', 'HAVE_FREEZERO', 'HAVE_RECALLOCARRAY', 'HAVE_TIMINGSAFE_MEMCMP', 'HAVE_TIMINGSAFE_BCMP'}
 netbsd = bsd | {'HOST_NETBSD'}
 freebsd = bsd | {'HOST_FREEBSD', 'HAVE_TIMINGSAFE_MEMCMP', 'HAVE_TIMINGSAFE_BCMP'}
-darwin = not_windows | {'HOST_DARWIN', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_ARC4RANDOM_BUF'}
-linux_glibc_2_29 = not_windows | {'HOST_LINUX', 'HAVE_REALLOCARRAY'}
-linux_glibc_2_36 = linux_glibc_2_29 | {'HAVE_ARC4RANDOM_BUF'}
+darwin = not_windows | {'HOST_DARWIN', 'HAVE_STRLCAT', 'HAVE_STRLCPY', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_ARC4RANDOM_BUF'}
+linux_glibc_2_26 = not_windows | {'HOST_LINUX', 'HAVE_REALLOCARRAY'}
+linux_glibc_2_36 = linux_glibc_2_26 | {'HAVE_ARC4RANDOM_BUF'}
 linux_glibc_2_38 = linux_glibc_2_36 | {'HAVE_STRLCAT', 'HAVE_STRLCPY'}
+linux_musl = linux_glibc_2_38
 
 fileLists = extractFileLists(sys.stdin, interest.keys())
 exported = {}
-#exported['libcypto_not_windows'] = getFileList(fileLists, 'libcrypto_la_SOURCES', {})
-#exported['libcypto_windows'] = getFileList(fileLists, 'libcrypto_la_SOURCES', windows)
-exported['libcompat_netbsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', netbsd)
-exported['libcompat_openbsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', openbsd)
-exported['libcompat_freebsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', freebsd)
+exported['libcrypto_unix'] = getFileList(fileLists, 'libcrypto_la_SOURCES', set())
+exported['libcrypto_windows'] = getFileList(fileLists, 'libcrypto_la_SOURCES', windows)
+#exported['libcompat_netbsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', netbsd)
+#exported['libcompat_openbsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', openbsd)
+#exported['libcompat_freebsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', freebsd)
 exported['libcompat_darwin'] = getFileList(fileLists, 'libcompat_la_SOURCES', darwin)
 exported['libcompat_windows'] = getFileList(fileLists, 'libcompat_la_SOURCES', windows)
 exported['libcompat_linux_glibc_2_36'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_glibc_2_36)
 exported['libcompat_linux_glibc_2_38'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_glibc_2_38)
+exported['libcompat_linux_musl'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_musl)
+
+for key, value in interest.items():
+    if key[:3] != 'ASM':
+        continue
+    exported[value] = getFileList(fileLists, key, set())
 
 for name, files in exported.items():
     print(name, file=sys.stderr)
