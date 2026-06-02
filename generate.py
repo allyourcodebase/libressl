@@ -39,39 +39,39 @@ type FileListMap = dict[str, dict[tuple[str, ...], list[str]]]
 # }
 def extract_file_lists(reader: TextIO, desired: set[str]) -> FileListMap:
     result: FileListMap = defaultdict(lambda: defaultdict(list))
-    inside: str | None = None
-    condition: list[str] = []
+    current_variable: str | None = None
+    condition_stack: list[str] = []
     for line in map(str.strip, reader):
         if not line or line[0] == '#':
             continue
-        if inside:
+        if current_variable:
             value = line
-            dest = inside
+            dest = current_variable
             if value and value[-1] == '\\':
                 value = value[:-1].strip()
             else:
-                inside = None
+                current_variable = None
             if value:
-                result[dest][tuple(sorted(condition))].append(value)
+                result[dest][tuple(sorted(condition_stack))].append(value)
         else:
             if line == 'endif':
-                condition.pop()
+                condition_stack.pop()
             elif line == 'else':
-                if condition[-1][0] == '!':
-                    condition[-1] = condition[-1][1:]
+                if condition_stack[-1][0] == '!':
+                    condition_stack[-1] = condition_stack[-1][1:]
                 else:
-                    condition[-1] = '!' + condition[-1]
+                    condition_stack[-1] = '!' + condition_stack[-1]
             elif line[:3] == 'if ':
-                condition.append(line[3:])
+                condition_stack.append(line[3:])
             elif '=' in line:
                 sep = '+=' if '+=' in line else '='
                 assigned, value = map(str.strip, line.split(sep, 1))
                 if assigned in desired:
                     if value and value[-1] == '\\':
-                        inside = assigned
+                        current_variable = assigned
                         value = value[:-1].strip()
                     if value:
-                        result[assigned][tuple(sorted(condition))].append(value)
+                        result[assigned][tuple(sorted(condition_stack))].append(value)
     return result
 
 # Get the value of a given variable, given a configuration
