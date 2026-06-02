@@ -37,7 +37,7 @@ type FileListMap = dict[str, dict[tuple[str, ...], list[str]]]
 #         ('!HAVE_GETPROGNAME', '!HOST_LINUX', '!HOST_WIN'): ['compat/getprogname_unimpl.c'],
 #     }
 # }
-def extractFileLists(reader: TextIO, desired: set[str]) -> FileListMap:
+def extract_file_lists(reader: TextIO, desired: set[str]) -> FileListMap:
     result: FileListMap = defaultdict(lambda: defaultdict(list))
     inside: str | None = None
     condition: list[str] = []
@@ -75,9 +75,9 @@ def extractFileLists(reader: TextIO, desired: set[str]) -> FileListMap:
     return result
 
 # Get the value of a given variable, given a configuration
-def getFileList(fileLists: FileListMap, name: str, situation: set[str]) -> list[str]:
+def get_file_list(file_lists: FileListMap, name: str, situation: set[str]) -> list[str]:
     result: list[str] = []
-    for conditions, files in fileLists[name].items():
+    for conditions, files in file_lists[name].items():
         take: bool = True
         for cond in conditions:
             if cond[0] == '!':
@@ -137,26 +137,26 @@ linux_glibc_2_36 = linux_glibc_2_26 | {'HAVE_ARC4RANDOM_BUF'}
 linux_glibc_2_38 = linux_glibc_2_36 | {'HAVE_STRLCAT', 'HAVE_STRLCPY'}
 linux_musl = linux_glibc_2_38
 
-fileLists = extractFileLists(sys.stdin, set(interest.keys()))
+file_lists = extract_file_lists(sys.stdin, set(interest.keys()))
 exported = {}
-exported['libcrypto_unix'] = getFileList(fileLists, 'libcrypto_la_SOURCES', set())
-exported['libcrypto_windows'] = getFileList(fileLists, 'libcrypto_la_SOURCES', windows)
-#exported['libcompat_netbsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', netbsd)
-#exported['libcompat_openbsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', openbsd)
-#exported['libcompat_freebsd'] = getFileList(fileLists, 'libcompat_la_SOURCES', freebsd)
-exported['libcompat_darwin'] = getFileList(fileLists, 'libcompat_la_SOURCES', darwin)
-exported['libcompat_windows'] = getFileList(fileLists, 'libcompat_la_SOURCES', windows)
-exported['libcompat_linux_glibc_2_36'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_glibc_2_36)
-exported['libcompat_linux_glibc_2_38'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_glibc_2_38)
-exported['libcompat_linux_musl'] = getFileList(fileLists, 'libcompat_la_SOURCES', linux_musl)
-exported['libtls_windows'] = getFileList(fileLists, 'libtls_la_SOURCES', windows)
-exported['libtls_unix'] = getFileList(fileLists, 'libtls_la_SOURCES', set())
-exported['libssl_sources'] = getFileList(fileLists, 'libssl_la_SOURCES', set())
+exported['libcrypto_unix'] = get_file_list(file_lists, 'libcrypto_la_SOURCES', set())
+exported['libcrypto_windows'] = get_file_list(file_lists, 'libcrypto_la_SOURCES', windows)
+#exported['libcompat_netbsd'] = get_file_list(file_lists, 'libcompat_la_SOURCES', netbsd)
+#exported['libcompat_openbsd'] = get_file_list(file_lists, 'libcompat_la_SOURCES', openbsd)
+#exported['libcompat_freebsd'] = get_file_list(file_lists, 'libcompat_la_SOURCES', freebsd)
+exported['libcompat_darwin'] = get_file_list(file_lists, 'libcompat_la_SOURCES', darwin)
+exported['libcompat_windows'] = get_file_list(file_lists, 'libcompat_la_SOURCES', windows)
+exported['libcompat_linux_glibc_2_36'] = get_file_list(file_lists, 'libcompat_la_SOURCES', linux_glibc_2_36)
+exported['libcompat_linux_glibc_2_38'] = get_file_list(file_lists, 'libcompat_la_SOURCES', linux_glibc_2_38)
+exported['libcompat_linux_musl'] = get_file_list(file_lists, 'libcompat_la_SOURCES', linux_musl)
+exported['libtls_windows'] = get_file_list(file_lists, 'libtls_la_SOURCES', windows)
+exported['libtls_unix'] = get_file_list(file_lists, 'libtls_la_SOURCES', set())
+exported['libssl_sources'] = get_file_list(file_lists, 'libssl_la_SOURCES', set())
 
 for key, value in interest.items():
     if value is None:
         continue
-    exported[value] = getFileList(fileLists, key, set())
+    exported[value] = get_file_list(file_lists, key, set())
 
 for name, files in exported.items():
     print(name, file=sys.stderr)
