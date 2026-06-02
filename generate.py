@@ -1,12 +1,48 @@
+#!/usr/bin/env -S uv run --script
+#
+# /// script
+# requires-python = ">=3.12"
+# ///
+
+# To check type correctness:
+# uvx ty check generate.py
+
 import sys
 from collections import defaultdict
+from typing import TextIO
 
-def extractFileLists(reader, desired: set[str]):
-    result = defaultdict(list)
-    inside = None
-    condition = []
+type FileListMap = dict[str, dict[tuple[str, ...], list[str]]]
+
+# Parse Makfile syntax to extract the value of variables in _desired_, if present
+# Values appended within a 'if' block are stored in separate entries
+#
+# Sample input:
+# if !HAVE_GETPROGNAME
+# if HOST_LINUX
+# libcompat_la_SOURCES += compat/getprogname_linux.c
+# else
+# if HOST_WIN
+# libcompat_la_SOURCES += compat/getprogname_windows.c
+# else
+# libcompat_la_SOURCES += compat/getprogname_unimpl.c
+# endif
+# endif
+# endif
+#
+# Sample output:
+# {
+#     'libcompat_la_SOURCES': {
+#         ('!HAVE_GETPROGNAME', 'HOST_LINUX'): ['compat/getprogname_linux.c'],
+#         ('!HAVE_GETPROGNAME', '!HOST_LINUX', 'HOST_WIN'): ['compat/getprogname_windows.c'],
+#         ('!HAVE_GETPROGNAME', '!HOST_LINUX', '!HOST_WIN'): ['compat/getprogname_unimpl.c'],
+#     }
+# }
+def extractFileLists(reader: TextIO, desired: set[str]) -> FileListMap:
+    result: FileListMap = defaultdict(lambda: defaultdict(list))
+    inside: str | None = None
+    condition: list[str] = []
     for line in map(str.strip, reader):
-        if line and line[0] == '#':
+        if not line or line[0] == '#':
             continue
         if inside:
             value = line
@@ -15,8 +51,8 @@ def extractFileLists(reader, desired: set[str]):
                 value = value[:-1].strip()
             else:
                 inside = None
-            if value and value[:3] != '"$(':
-                result[dest, tuple(sorted(condition))].append(value)
+            if value:
+                result[dest][tuple(sorted(condition))].append(value)
         else:
             if line == 'endif':
                 condition.pop()
@@ -34,26 +70,25 @@ def extractFileLists(reader, desired: set[str]):
                     if value and value[-1] == '\\':
                         inside = assigned
                         value = value[:-1].strip()
-                    if value and value[:2] != '$(':
-                        result[assigned, tuple(sorted(condition))].append(value)
+                    if value:
+                        result[assigned][tuple(sorted(condition))].append(value)
     return result
 
-def getFileList(fileLists: dict, name: str, conditions: set[str]) -> list[str]:
-    result = []
-    #print('---', name, conditions, file=sys.stderr)
-    for (listName, conds), files in fileLists.items():
-        if listName == name:
-            take = True
-            for cond in conds:
-                if cond[0] == '!':
-                    if cond[1:] in conditions:
-                        take = False
-                        break
-                elif cond not in conditions:
+# Get the value of a given variable, given a configuration
+def getFileList(fileLists: FileListMap, name: str, situation: set[str]) -> list[str]:
+    result: list[str] = []
+    for conditions, files in fileLists[name].items():
+        take: bool = True
+        for cond in conditions:
+            if cond[0] == '!':
+                if cond[1:] in situation:
                     take = False
-            #print(conds, take, file=sys.stderr)
-            if take:
-                result += files
+                    break
+            elif cond not in situation:
+                take = False
+                break
+        if take:
+            result += files
     return result
 
 interest = {
@@ -67,15 +102,10 @@ interest = {
     'libssl_la_SOURCES': None,
 }
 
-# linux + glibc:
-# - < 2.38: !HAVE_STRLCAT, !HAVE_STRLCPY (https://sourceware.org/pipermail/libc-alpha/2023-July/150524.html)
-# - < 2.36: !HAVE_ARC4RANDOM_BUF (https://sourceware.org/pipermail/libc-alpha/2022-August/141193.html)
-# - < 2.29: HAVE_REALLOCARRAY requires _GNU_SOURCE
-
 # syslog_r: only mention I could find: https://www.ibm.com/docs/en/aix/7.3.0?topic=s-syslog-r-openlog-r-closelog-r-setlogmask-r-subroutine
 
 # strnlen: POSIX.1
-# strlcpy, strlcat: OpenBSD 2.4, FreeBSD 3.3, NetBSD 1.4.3
+# strlcpy, strlcat: OpenBSD 2.4, FreeBSD 3.3, NetBSD 1.4.3, glibc 2.38
 # strndup: glibc 2.0, FreeBSD 7.2, NetBSD 4.0, OpenBSD 4.8
 # strsep: 4.4BSD
 # asprintf: glibc, OpenBSD 2.3, FreeBSD 2.2, on linux requires _GNU_SOURCE
@@ -94,19 +124,20 @@ interest = {
 
 common = {'HAVE_STRNLEN'}
 not_windows = common | {'HAVE_STRNDUP', 'HAVE_STRSEP', 'HAVE_ASPRINTF', 'HAVE_GETPAGESIZE', 'HAVE_GETENTROPY', 'HAVE_GETDELIM', 'HAVE_GETLINE', 'HAVE_FTRUNCATE'}
-bsd = not_windows | {'HAVE_STRLCAT', 'HAVE_STRLCPY', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_REALLOCARRAY', 'HAVE_ARC4RANDOM_BUF'}
+old_bsd = not_windows | {'HAVE_STRLCAT', 'HAVE_STRLCPY', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_ARC4RANDOM_BUF'}
+bsd = old_bsd | {'HAVE_REALLOCARRAY'}
 
 windows = common | {'HOST_WIN'}
 openbsd = bsd | {'HOST_OPENBSD', 'HAVE_FREEZERO', 'HAVE_RECALLOCARRAY', 'HAVE_TIMINGSAFE_MEMCMP', 'HAVE_TIMINGSAFE_BCMP'}
 netbsd = bsd | {'HOST_NETBSD'}
 freebsd = bsd | {'HOST_FREEBSD', 'HAVE_TIMINGSAFE_MEMCMP', 'HAVE_TIMINGSAFE_BCMP'}
-darwin = not_windows | {'HOST_DARWIN', 'HAVE_STRLCAT', 'HAVE_STRLCPY', 'HAVE_STRTONUM', 'HAVE_GETPROGNAME', 'HAVE_ARC4RANDOM_BUF'}
+darwin = old_bsd | {'HOST_DARWIN'}
 linux_glibc_2_26 = not_windows | {'HOST_LINUX', 'HAVE_REALLOCARRAY'}
 linux_glibc_2_36 = linux_glibc_2_26 | {'HAVE_ARC4RANDOM_BUF'}
 linux_glibc_2_38 = linux_glibc_2_36 | {'HAVE_STRLCAT', 'HAVE_STRLCPY'}
 linux_musl = linux_glibc_2_38
 
-fileLists = extractFileLists(sys.stdin, interest.keys())
+fileLists = extractFileLists(sys.stdin, set(interest.keys()))
 exported = {}
 exported['libcrypto_unix'] = getFileList(fileLists, 'libcrypto_la_SOURCES', set())
 exported['libcrypto_windows'] = getFileList(fileLists, 'libcrypto_la_SOURCES', windows)
