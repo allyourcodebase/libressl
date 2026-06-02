@@ -38,6 +38,8 @@ type FileListMap = dict[str, dict[tuple[str, ...], list[str]]]
 #     }
 # }
 def extract_file_lists(reader: TextIO, desired: set[str]) -> FileListMap:
+    def negate(condition: str) -> str:
+        return condition[1:] if condition[0] == '!' else '!' + condition
     result: FileListMap = defaultdict(lambda: defaultdict(list))
     current_variable: str | None = None
     condition_stack: list[str] = []
@@ -57,11 +59,8 @@ def extract_file_lists(reader: TextIO, desired: set[str]) -> FileListMap:
             if line == 'endif':
                 condition_stack.pop()
             elif line == 'else':
-                if condition_stack[-1][0] == '!':
-                    condition_stack[-1] = condition_stack[-1][1:]
-                else:
-                    condition_stack[-1] = '!' + condition_stack[-1]
-            elif line[:3] == 'if ':
+                condition_stack[-1] = negate(condition_stack[-1])
+            elif line.startswith('if '):
                 condition_stack.append(line[3:])
             elif '=' in line:
                 sep = '+=' if '+=' in line else '='
@@ -78,16 +77,7 @@ def extract_file_lists(reader: TextIO, desired: set[str]) -> FileListMap:
 def get_file_list(file_lists: FileListMap, name: str, situation: set[str]) -> list[str]:
     result: list[str] = []
     for conditions, files in file_lists[name].items():
-        take: bool = True
-        for cond in conditions:
-            if cond[0] == '!':
-                if cond[1:] in situation:
-                    take = False
-                    break
-            elif cond not in situation:
-                take = False
-                break
-        if take:
+        if all((cond[1:] not in situation) if cond[0] == '!' else (cond in situation) for cond in conditions):
             result += files
     return result
 
