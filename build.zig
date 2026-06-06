@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) !void {
     else if (tinfo.os.tag == .windows)
         "C:/Windows/libressl/ssl"
     else
-        b.pathJoin(&.{ b.install_prefix, "etc", "ssl" });
+        "/etc/ssl";
 
     const common_cflags: []const []const u8 = &.{
         "-fno-sanitize=undefined",
@@ -465,8 +465,9 @@ pub fn build(b: *std.Build) !void {
     libressl_common.installLibraries(b);
 
     // weird hack here
-    libressl_common.apps.nc.root_module.addCMacro("DEFAULT_CA_FILE", b.pathJoin(&.{ b.install_prefix, "etc", "ssl", "cert.pem" }));
-    libressl_common.apps.ocspcheck.root_module.addCMacro("DEFAULT_CA_FILE", b.pathJoin(&.{ b.install_prefix, "etc", "ssl", "cert.pem" }));
+    const default_ca_file = std.fmt.allocPrint(b.allocator, "\"{s}/cert.pem\"", .{resolved_openssl_dir}) catch @panic("OOM");
+    libressl_common.apps.nc.root_module.addCMacro("DEFAULT_CA_FILE", default_ca_file);
+    libressl_common.apps.ocspcheck.root_module.addCMacro("DEFAULT_CA_FILE", default_ca_file);
     libressl_common.apps.nc.root_module.linkLibrary(libressl_common.libtls);
     libressl_common.apps.ocspcheck.root_module.linkLibrary(libressl_common.libtls);
     libressl_common.apps.openssl.root_module.linkLibrary(libressl_common.libssl);
